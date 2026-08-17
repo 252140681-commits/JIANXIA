@@ -1,44 +1,82 @@
-export async function onRequestGet(context) {
-  const { request, env } = context;
-  const u = new URL(request.url);
-  const city = u.searchParams.get("city") || "";
-  const event = u.searchParams.get("event") || "set_2";
-  const model = u.searchParams.get("model") || "GFS";
-  if (!city) return json({status:"error",message:"city required"},400);
+// Cloudflare Pages Function
+// Same-origin proxy for SunsetBot's public JSON endpoint.
+// Frontend calls: /api/sunsetbot?query_id=...&intend=select_city&query_city=...&event_date=None&event=set_2&times=None
 
-  const key = `jianxia:${city}:${event}:${model}`;
-  const cached = await caches.default.match(new Request("https://cache.local/"+encodeURIComponent(key)));
-  if (cached) return cached;
+const ALLOWED = new Set([
+  'query_id',
+  'intend',
+  'query_city',
+  'event_date',
+  'event',
+  'times'
+]);
 
-  const upstream = new URL("https://sunsetbot.top/");
-  upstream.searchParams.set("intend","select_city");
-  upstream.searchParams.set("query_city",city);
-  upstream.searchParams.set("event",event);
-  upstream.searchParams.set("model",model);
+export async function onRequest(context) {
+  const requestUrl = new URL(context.request.url);
+  const targetUrl = new URL('https://sunsetbot.top/');
+
+  for (const [key, value] of requestUrl.searchParams.entries()) {
+    if (ALLOWED.has(key)) targetUrl.searchParams.set(key, value);
+  }
+
+  if (!targetUrl.searchParams.get('query_city')) {
+    return json({ status: 'error', message: '缺少 query_city' }, 400);
+  }
 
   try {
-    const r = await fetch(upstream.toString(), {
-      headers: {"Accept":"application/json","User-Agent":"JianXia/1.0"}
+    const upstream = await fetch(targetUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Jianxia/1.1 Cloudflare Pages Function'
+      },
+      cf: { cacheTtl: 0, cacheEverything: false }
     });
-    const text = await r.text();
-    let data;
-    try { data = JSON.parse(text); }
-    catch { data = {status:"error",message:"non-json upstream"}; }
-    const out = json(data, r.ok ? 200 : r.status);
-    out.headers.set("Cache-Control","public, max-age=90");
-    await caches.default.put(new Request("https://cache.local/"+encodeURIComponent(key)), out.clone());
-    return out;
-  } catch (e) {
-    return json({status:"error",message:e?.message || "upstream request failed"},502);
+
+    const text = await upstream.text();
+    const contentType = upstream.headers.get('content-type') || '';
+
+    if (!upstream.ok) {
+      return json({
+        status: 'error',
+        message: `SunsetBot HTTP ${upstream.status}`,
+        upstream_status: upstream.status,
+        detail: text.slice(0, 500)
+      }, 502);
+    }
+
+    // Prefer JSON. If upstream returns a JSON string with the wrong content-type,
+    // still parse and return it as JSON.
+    try {
+      const data = JSON.parse(text);
+      return json(data, 200, {
+        'X-Jianxia-Proxy': 'sunsetbot'
+      });
+    } catch {
+      return json({
+        status: 'error',
+        message: 'SunsetBot 返回的不是有效 JSON',
+        upstream_content_type: contentType,
+        detail: text.slice(0, 500)
+      }, 502);
+    }
+  } catch (error) {
+    return json({
+      status: 'error',
+      message: '无法连接 SunsetBot 官方接口',
+      detail: String(error?.message || error)
+    }, 502);
   }
 }
-function json(data,status=200){
-  return new Response(JSON.stringify(data),{
+
+function json(data, status = 200, extraHeaders = {}) {
+  return new Response(JSON.stringify(data), {
     status,
-    headers:{
-      "Content-Type":"application/json; charset=utf-8",
-      "Access-Control-Allow-Origin":"*",
-      "Cache-Control":"no-store"
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+      ...extraHeaders
     }
   });
 }
