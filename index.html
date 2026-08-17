@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta name="application-name" content="见霞">
-<meta name="apple-mobile-web-app-title" content="见霞">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>见霞 · 专业霞光预报</title>
@@ -32,20 +30,13 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 .dir{display:flex;align-items:center;gap:15px}.compass{width:94px;height:94px;border:1px solid #31506c;border-radius:50%;position:relative;display:grid;place-items:center;background:radial-gradient(circle,#102a40,#091624)}.needle{width:4px;height:38px;background:linear-gradient(#ff6b68 50%,#5ed8ff 50%);border-radius:4px;transform-origin:50% 50%}
 .sources{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.sourcebox{background:#091727;border:1px solid #1e344b;border-radius:12px;padding:10px}.sourcebox b{display:block;margin:4px 0}.sourcebox small{color:#8da4ba;font-size:9px}
 @media(max-width:900px){.sources{grid-template-columns:repeat(2,1fr)}}
-
-.sectionhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.tinyselect{display:flex;gap:4px;align-items:center;color:#7890a7;font-size:10px}.mini{border:1px solid #29425a;background:#091727;color:#8fa5ba;border-radius:8px;padding:6px 8px;cursor:pointer}.mini.on{border-color:#ff7b63;color:#fff}
-.daily-list{display:grid;gap:7px}.daily-row{display:grid;grid-template-columns:78px 1fr 1fr 86px;gap:8px;align-items:center;background:#091727;border:1px solid #1d344c;border-radius:12px;padding:9px;cursor:pointer}
-.daily-row:hover,.daily-row.sel{border-color:#ff8066;background:#0d1c2c}.datebox b{display:block;font-size:13px}.datebox small{color:#8198ae;font-size:10px}
-.event{border-radius:10px;padding:9px 10px;border:1px solid #1d344c;background:#0b1828}.event .ehead{display:flex;justify-content:space-between;gap:6px}.event .ename{font-size:10px;color:#9fb4c8}.event .etime{font-size:9px;color:#6f879e}.event .escore{font-size:22px;font-weight:900;line-height:1.1}.event .bar{margin-top:5px}.event.strong{background:linear-gradient(135deg,#251b20,#0b1828);border-color:#65404a}.event.strong .escore{color:#ff765f}.event.good .escore{color:#ffc66c}.event.weak .escore{color:#8095aa}.daybest{text-align:center}.daybest b{display:block;font-size:12px}.daybest small{color:#8198ae;font-size:9px}
-@media(max-width:700px){.daily-row{grid-template-columns:60px 1fr 1fr;gap:5px}.daybest{grid-column:1/-1;text-align:left;padding:2px 5px}.event{padding:8px}.event .escore{font-size:19px}.sectionhead{align-items:center}}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div class="logo">霞光<i>预报</i> Pro</div><div class="tag">REAL-TIME · 多模型融合</div></div>
+<div class="top"><div class="logo">见霞 <i>专业霞光预报</i></div><div class="tag">REAL-TIME · 多模型融合</div></div>
 
 <section class="hero">
  <div class="row">
@@ -59,17 +50,19 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 
 <div class="grid">
 <section class="card">
- <div class="sectionhead"><div><h2>未来 16 天 · 每日朝霞 / 晚霞</h2><div class="sub">一行看完一天早晚两场霞 · 点击日期查看详细分析</div></div><div class="tinyselect"><span>显示</span><button class="mini on" onclick="setRange(8,this)">7天</button><button class="mini" onclick="setRange(16,this)">16天</button></div></div>
+ <h2>未来 7～16 天 · 朝霞 / 晚霞预测</h2>
  <div class="tabs" id="tabs">
   <button class="tab on" onclick="switchModel('fusion',this)">★ 融合</button>
-  <button class="tab" onclick="switchModel('gfs',this)">GFS</button>
-  <button class="tab" onclick="switchModel('ecmwf',this)">ECMWF</button>
+  <button class="tab" onclick="switchModel('gfs',this)">NOAA GFS</button>
+  <button class="tab" onclick="switchModel('ecmwf',this)">ECMWF IFS</button>
   <button class="tab" onclick="switchModel('kma',this)">KMA</button>
-  <button class="tab" onclick="switchModel('sunsetbot',this)">🔥 SunsetBot</button>
+  <button class="tab" onclick="switchModel('sunsetbot',this)">🔥 SunsetBot 官方</button>
+  <button class="tab" onclick="switchModel('best',this)">Best Match</button>
  </div>
- <div id="modelNote" class="sub">融合预测 · 每天同时显示朝霞和晚霞。 <span style="color:#ff8065">80+</span> 大烧 · <span style="color:#ffc66c">65+</span> 较强 · <span style="color:#8198ae">45+</span> 一般</div>
- <div id="forecast" class="daily-list" style="margin-top:12px"></div>
+ <div id="modelNote" class="sub">融合模式：GFS / ECMWF / KMA + CAMS 辅助。新增“🔥 SunsetBot 官方”源：直接读取 sunsetbot.top 公布的 JSON 查询接口，展示其原生“鲜艳度 / AOD / 预报模型”结果；该源与我们的算法分开，不混算。</div>
+ <div id="forecast" class="forecast" style="margin-top:12px"></div>
 </section>
+
 <section class="card">
  <h2>选中日期 · 霞光判断</h2>
  <div class="row"><div class="big" id="score">--</div><div><div class="level" id="level">等待数据</div><div class="sub" id="window">最佳拍摄时间：--</div></div></div>
@@ -145,12 +138,12 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 </section>
 
 <footer>
-数据接口：Open-Meteo Forecast / ECMWF / GFS / KMA、Air Quality/CAMS，以及 SunsetBot 官方公开 JSON 接口（通过本项目后端代理）。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；KMA 接口目前因模型迁移暂停更新。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
+数据接口：Open-Meteo Forecast / ECMWF / GFS / KMA、Air Quality/CAMS，以及 SunsetBot 官方公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；KMA 接口目前因模型迁移暂停更新。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
 </footer>
 </div>
 
 <script>
-const S={lat:null,lon:null,tz:'auto',place:'',models:{},active:'fusion',days:8,range:8,selected:0};
+const S={lat:null,lon:null,tz:'auto',place:'',models:{},active:'fusion',days:8,selected:0};
 const api=(base,p)=>base+'?'+new URLSearchParams(p);
 const weatherVars='cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability,wind_speed_10m,wind_direction_10m,temperature_2m';
 function avg(a){a=a.filter(x=>Number.isFinite(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
@@ -217,33 +210,21 @@ async function load(){
  }
  S.air=air; render(); loadSunsetBot();
 }
-function setRange(n,el){S.range=n;document.querySelectorAll('.mini').forEach(x=>x.classList.remove('on'));el.classList.add('on');render();}
 function setStatus(x){document.getElementById('status').textContent='联网状态：'+x}
 function render(){
  let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.kma;
  if(!d){setStatus('没有获得天气数据');return}
  let airArr=S.air?.hourly?.aerosol_optical_depth||[],air={aod:airArr};
  let days=dayScores(d,air);S.days=days.length; S.selected=Math.min(S.selected,days.length-1);
- const visible=days.slice(0,S.range||8);
- document.getElementById('forecast').innerHTML=visible.map((x,i)=>{
-   const morning=x.am,evening=x.pm,best=morning>=evening?'朝霞':'晚霞',bs=Math.max(morning,evening);
-   const cls=s=>s>=80?'strong':s>=55?'good':'weak',label=s=>s>=80?'大烧':s>=65?'较强':s>=45?'一般':'偏弱';
-   const wd=new Date(x.date+'T12:00:00').toLocaleDateString('zh-CN',{weekday:'short'});
-   return `<div class="daily-row ${i===S.selected?'sel':''}" onclick="selectDay(${i})">
-    <div class="datebox"><b>${x.date.slice(5)}</b><small>${wd}</small></div>
-    <div class="event ${cls(morning)}"><div class="ehead"><span class="ename">🌅 朝霞 · ${label(morning)}</span><span class="etime">${x.rise?.slice(11,16)||'--'}</span></div><div class="escore">${morning}</div><div class="bar"><b style="width:${morning}%"></b></div></div>
-    <div class="event ${cls(evening)}"><div class="ehead"><span class="ename">🌇 晚霞 · ${label(evening)}</span><span class="etime">${x.set?.slice(11,16)||'--'}</span></div><div class="escore">${evening}</div><div class="bar"><b style="width:${evening}%"></b></div></div>
-    <div class="daybest"><small>今日推荐</small><b>${best} ${bs}分</b></div>
-   </div>`;
- }).join('');
+ document.getElementById('forecast').innerHTML=days.map((x,i)=>`<div class="day ${i===S.selected?'sel':''}" onclick="selectDay(${i})"><div class="date">${x.date.slice(5)} · ${new Date(x.date).toLocaleDateString('zh-CN',{weekday:'short'})}</div><div class="score ${x.score>=75?'hot':x.score>=50?'good':'weak'}">${x.score}</div><div class="kind">${x.kind} · ${x.score>=80?'大烧':x.score>=65?'较强':x.score>=45?'一般':'偏弱'}</div><div class="bar"><b style="width:${x.score}%"></b></div></div>`).join('');
  selectDay(S.selected,false); compare(); renderAdvanced();
  setStatus('已联网 · '+new Date().toLocaleTimeString()+' 更新');
 }
 function selectDay(i,rerender=true){
  S.selected=i; let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.kma;if(!d)return;
  let days=dayScores(d,{aod:S.air?.hourly?.aerosol_optical_depth||[]}),x=days[i],h=d.hourly;
- document.querySelectorAll('.daily-row').forEach((e,j)=>e.classList.toggle('sel',j===i));
- document.getElementById('score').textContent=x.score;document.getElementById('level').textContent=`${x.kind} ${x.score>=80?'🔥 大烧':x.score>=65?'🟠 较强':x.score>=45?'🟡 一般':'🔵 偏弱'} · 朝霞 ${x.am} / 晚霞 ${x.pm}`;
+ document.querySelectorAll('.day').forEach((e,j)=>e.classList.toggle('sel',j===i));
+ document.getElementById('score').textContent=x.score;document.getElementById('level').textContent=x.score>=80?'🔥 大烧':x.score>=65?'🟠 较强':x.score>=45?'🟡 一般':'🔵 偏弱';
  document.getElementById('window').textContent=(x.kind==='朝霞'?'最佳拍摄：日出前 25～日出后 20 分钟':'最佳拍摄：日落前 25～日落后 30 分钟');
  document.getElementById('sunrise').textContent=fmtTime(x.rise);document.getElementById('sunset').textContent=fmtTime(x.set);
  let ri=h.time.findIndex(t=>t===x.rise);if(ri<0)ri=h.time.findIndex(t=>t.startsWith(x.date));let si=h.time.findIndex(t=>t===x.set);if(si<0)si=ri+12;
@@ -308,7 +289,7 @@ function switchModel(n,el){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
   if(n==='sunsetbot'){
-    document.getElementById('modelNote').textContent='🔥 SunsetBot 官方：通过本项目后端代理读取 sunsetbot.top 的公开 JSON；支持 GFS / EC 两套官方源，并显示原始鲜艳度、AOD、事件时间与模型时次。';
+    document.getElementById('modelNote').textContent='🔥 SunsetBot 官方：直接读取其公开 JSON。官方页面显示其基础为 NCEP-GFS / ECMWF + CAMS，并提供鲜艳度与 AOD。';
     document.getElementById('sunsetBotCard').scrollIntoView({behavior:'smooth',block:'center'});
     loadSunsetBot();
     return;
@@ -327,14 +308,20 @@ function sunsetBotCityName(){
   // 当前优先使用输入框文字；若为自动定位，则提示用户输入城市名以获得官方源。
   return document.getElementById('place').value.trim();
 }
-async function fetchSunsetBot(event, model='GFS'){
+async function fetchSunsetBot(event){
   const city=sunsetBotCityName();
   if(!city) throw new Error('请先输入城市名称');
-  const p={city,event,model};
-  const r=await fetch('/api/sunsetbot?'+new URLSearchParams(p),{
-    headers:{'Accept':'application/json'}
-  });
-  if(!r.ok) throw new Error('代理接口 HTTP '+r.status);
+  const p={
+    query_id:String(Math.floor(Math.random()*9000000+1000000)),
+    intend:'select_city',
+    query_city:city,
+    event_date:'None',
+    event:event,
+    times:'None'
+  };
+  const url='/api/sunsetbot?'+new URLSearchParams(p).toString();
+  const r=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!r.ok) throw new Error('HTTP '+r.status);
   const j=await r.json();
   if(j.status && j.status!=='ok') throw new Error(j.message||'SunsetBot 返回失败');
   return j;
@@ -353,34 +340,31 @@ function sbLevel(v){
   return '偏弱';
 }
 async function loadSunsetBot(){
-  document.getElementById('sunsetBotCard').style.display='block';
-  document.getElementById('sbStatus').textContent='正在通过服务器代理连接 SunsetBot 官方 JSON…';
+  const card=document.getElementById('sunsetBotCard');
+  card.style.display='block';
+  document.getElementById('sbStatus').textContent='正在请求 sunsetbot.top 官方 JSON…';
   try{
-    const results=await Promise.allSettled([
-      fetchSunsetBot('set_2','GFS'), fetchSunsetBot('set_2','EC'),
-      fetchSunsetBot('rise_2','GFS'), fetchSunsetBot('rise_2','EC')
+    const [set,rise]=await Promise.all([
+      fetchSunsetBot('set_2'),
+      fetchSunsetBot('rise_2')
     ]);
-    const ok=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
-    if(!ok.length) throw new Error('四次官方源请求均失败');
-    const set=ok.find(x=>x.display_event_name_cn==='日落')||ok[0];
-    const rise=ok.find(x=>x.display_event_name_cn==='日出')||ok.find(x=>x.display_event_name_cn==='日落')||ok[0];
     const sv=sbValue(set.tb_quality),rv=sbValue(rise.tb_quality);
     const sa=sbValue(set.tb_aod),ra=sbValue(rise.tb_aod);
-    const bestA=(sv??-1)>=(rv??-1)?sa:ra;
+    const bestA=sv>=rv?sa:ra;
     document.getElementById('sbSet').textContent=sv==null?'暂无':`${sv.toFixed(3)} · ${sbLevel(sv)}`;
     document.getElementById('sbRise').textContent=rv==null?'暂无':`${rv.toFixed(3)} · ${sbLevel(rv)}`;
     document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
-    document.getElementById('sbModel').textContent=[set.display_times_str,rise.display_times_str].filter(Boolean).join(' / ')||'GFS / EC';
-    document.getElementById('sbStatus').textContent=
-      `已连接 SunsetBot 官方数据源。${set.tb_event_time?'晚霞 '+set.tb_event_time+'；':''}${rise.tb_event_time?'朝霞 '+rise.tb_event_time+'；':''} 原始鲜艳度与 AOD 保留官方值。`;
+    document.getElementById('sbModel').textContent=set.display_times_str||rise.display_times_str||'官方数据';
+    document.getElementById('sbStatus').innerHTML=
+      `已连接 SunsetBot。晚霞：${set.tb_event_time||'--'}；朝霞：${rise.tb_event_time||'--'}。`+
+      ` 原始鲜艳度保持官方数值，不与本页 0–100 算法分数混淆。`;
   }catch(e){
-    document.getElementById('sbSet').textContent='暂无';
-    document.getElementById('sbRise').textContent='暂无';
+    document.getElementById('sbSet').textContent='连接失败';
+    document.getElementById('sbRise').textContent='连接失败';
     document.getElementById('sbStatus').textContent=
-      'SunsetBot 官方数据源连接失败：请确认本网页通过随附 server.mjs 启动，而不是直接双击 HTML。服务器代理已处理跨域问题。';
+      'SunsetBot 官方数据连接失败：请确认 Cloudflare Pages 已同时部署 functions/api/sunsetbot.js。';
   }
 }
-
 async function searchPlace(){
  let q=document.getElementById('place').value.trim();if(!q)return;
  setStatus('正在解析地点…');
