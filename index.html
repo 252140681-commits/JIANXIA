@@ -167,7 +167,7 @@ header .logo,
 </div>
 
 <script>
-const S={lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0};
+const S={sbLoading:false,lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0};
 const api=(base,p)=>base+'?'+new URLSearchParams(p);
 const weatherVars='cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability,wind_speed_10m,wind_direction_10m,temperature_2m,relative_humidity_2m';
 function avg(a){a=a.filter(x=>Number.isFinite(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
@@ -251,7 +251,10 @@ function fusionDayScores(dateIndex){
 async function fetchModel(name){
  let base='https://api.open-meteo.com/v1/forecast',p={latitude:S.lat,longitude:S.lon,timezone:'auto',forecast_days:16,hourly:weatherVars,daily:'sunrise,sunset',models:name==='gfs'?'gfs_seamless':name==='ecmwf'?'ecmwf_ifs':'kma_seamless'};
  if(name==='kma') p.forecast_days=8; else p.forecast_days=16;
- let r=await fetch(api(base,p)); if(!r.ok) throw new Error('模型接口不可用'); return await r.json();
+ const ac=new AbortController(); const timer=setTimeout(()=>ac.abort(),9000);
+ try{let r=await fetch(api(base,p),{signal:ac.signal,cache:'no-store'}); if(!r.ok) throw new Error(name.toUpperCase()+' 模型 HTTP '+r.status); return await r.json();}
+ catch(e){throw new Error(e?.name==='AbortError'?name.toUpperCase()+' 模型请求超时（9秒）':e.message||String(e));}
+ finally{clearTimeout(timer)}
 }
 async function fetchAir(){
  try{
@@ -261,13 +264,14 @@ async function fetchAir(){
 }
 async function load(){
  if(S.lat==null)return;
+ // SunsetBot 不再等待天气模型加载完成后才启动，避免任一天气接口卡住导致官方源永远停在“初始化”。
+ if(!S.sbLoading) loadSunsetBot();
  setStatus('正在请求 GFS / ECMWF / KMA…');
- const names=['gfs','ecmwf','kma']; let air=await fetchAir();
- for(const n of names){
-  try{S.models[n]=await fetchModel(n)}
-  catch(e){S.models[n]=null}
- }
- S.air=air; render(); loadSunsetBot();
+ const names=['gfs','ecmwf','kma'];
+ const airPromise=fetchAir();
+ const results=await Promise.allSettled(names.map(n=>fetchModel(n)));
+ results.forEach((r,i)=>{S.models[names[i]]=r.status==='fulfilled'?r.value:null});
+ S.air=await airPromise; render();
 }
 function setRange(n,el){S.range=n;document.querySelectorAll('.mini').forEach(x=>x.classList.remove('on'));el.classList.add('on');render();}
 function setStatus(x){document.getElementById('status').textContent='联网状态：'+x}
@@ -541,6 +545,8 @@ function sbLevel(v){
   if(v==null)return '--'; if(v>2)return '🔥 世纪大烧'; if(v>=1)return '🔥 大烧'; if(v>=.5)return '🟠 中大烧'; if(v>=.2)return '🟡 中小烧'; return '偏弱';
 }
 async function loadSunsetBot(){
+  if(S.sbLoading) return;
+  S.sbLoading=true;
   const card=document.getElementById('sunsetBotCard'); card.style.display='block';
   document.getElementById('sbSet').textContent='加载中…'; document.getElementById('sbRise').textContent='加载中…';
   document.getElementById('sbAod').textContent='--'; document.getElementById('sbModel').textContent='GFS / EC';
@@ -560,6 +566,7 @@ async function loadSunsetBot(){
   }else{
     const e1=setRes.status==='rejected'?setRes.reason?.message:''; const e2=riseRes.status==='rejected'?riseRes.reason?.message:''; document.getElementById('sbStatus').textContent='SunsetBot 本次没有返回有效数据。见霞已自动重试 GFS/EC，并已禁用 Cloudflare 对该接口的缓存。'+(e1||e2?` 原因：${[e1,e2].filter(Boolean).join('；')}`:'');
   }
+  S.sbLoading=false;
 }
 let suggestionTimer=null;
 let suggestionResults=[];
