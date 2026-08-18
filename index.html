@@ -67,6 +67,12 @@ header .logo,
 
 </style>
 
+
+<style id="fusion-event-and-footer-fix">
+.fusion-events{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.fusion-event-card{border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;background:rgba(255,255,255,.035)}.fusion-event-title{font-size:13px;color:#dfe7ef;margin-bottom:7px;font-weight:700}.fusion-event-card strong{display:block;font-size:34px;line-height:1.05;margin:4px 0}.fusion-event-card strong em{font-size:12px;font-style:normal;color:#8f98a6;margin-left:3px}.fusion-event-card b{display:block;font-size:13px}.fusion-event-card span{display:block;margin-top:7px;color:#aeb9c5;font-size:11px;line-height:1.5}.fusion-overall{margin-top:10px;text-align:center;color:#aeb9c5;font-size:11px}.fusion-overall strong{font-size:18px;color:#fff}@media(max-width:680px){.fusion-events{grid-template-columns:1fr 1fr;gap:7px}.fusion-event-card{padding:12px 10px}.fusion-event-card strong{font-size:28px}}
+.footer-credit{text-align:center;font-size:10px;color:#687f97;line-height:1.6;margin-top:4px}
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -95,6 +101,7 @@ header .logo,
   <button class="tab" onclick="switchModel('gfs',this)">GFS</button>
   <button class="tab" onclick="switchModel('ecmwf',this)">ECMWF</button>
   <button class="tab" onclick="switchModel('kma',this)">KMA</button>
+  <button class="tab" onclick="switchModel('sunsetbot',this)">SSB</button>
  </div>
  <div id="modelNote" class="sub">LJ天气思路增强：云层结构 + 能见度 + 降水 + AOD + 日出日落附近太阳高度 + 多模型一致性。仅参考公开特征，不复制其内部专有算法。</div>
  <div id="forecast" class="daily-list" style="margin-top:12px"></div>
@@ -170,6 +177,7 @@ header .logo,
 
 <footer>
 数据接口：Open-Meteo Forecast / ECMWF / GFS / KMA、Air Quality/CAMS，以及 专业数据公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；KMA 数据按可用模型返回。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
+<div class="footer-credit">大鹏牛批</div>
 </footer>
 </div>
 
@@ -462,14 +470,32 @@ function renderFusionData(){
  S.fusionScore=score;
  const level=score==null?'等待数据':score>=80?'🔥 大烧':score>=65?'🟠 较强':score>=45?'🟡 一般':'🔵 偏弱';
  const direction=score==null?'等待模型':spread<10?'多源高度一致，可信度较高':spread<20?'多源基本一致，建议临近拍摄再次刷新':'模型分歧较明显，建议结合现场云层观察';
- box.innerHTML=`<div class="fusion-main"><div><small>综合霞光评分</small><strong>${score==null?'--':score}<em>/100</em></strong><b>${level}</b></div><div class="fusion-confidence"><small>融合置信度</small><strong>${Math.round(confidence)}%</strong><span>${direction}</span></div></div>`;
+ // 朝霞与晚霞分别融合，避免用一个最高值代表全天。
+ const eventFusion=(event)=>{
+   const evVals=[],evLabels=[];
+   for(const n of ['gfs','ecmwf','kma']){
+     const md=S.models[n]; const ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[]; const v=ds[idx]?.[event];
+     if(v!=null){evVals.push(v);evLabels.push(`${n.toUpperCase()} ${Math.round(v)}`)}
+   }
+   const proRaw=event==='pm'?professionalToScore(S.sbData?.set?.tb_quality):professionalToScore(S.sbData?.rise?.tb_quality);
+   if(proRaw!=null && idx<2){evVals.push(proRaw);evLabels.push(`专业数据 ${Math.round(proRaw)}`)}
+   const base=evVals.length?avg(evVals):null; const spread=evVals.length>1?Math.max(...evVals)-Math.min(...evVals):0;
+   const conf=evVals.length>=3?clamp(97-spread*1.8):evVals.length===2?clamp(88-spread*1.6):65;
+   const sc=base==null?null:Math.round(base*(0.82+conf/100*0.18));
+   const lv=sc==null?'等待数据':sc>=80?'🔥 大烧':sc>=65?'🟠 较强':sc>=45?'🟡 一般':'🔵 偏弱';
+   const dir=sc==null?'等待数据':spread<10?'多源高度一致':spread<20?'多源基本一致':'模型分歧较明显';
+   return {sc,conf,lv,dir,labels:evLabels,spread};
+ };
+ const riseF=eventFusion('am'), setF=eventFusion('pm');
+ const best=[riseF.sc,setF.sc].filter(v=>v!=null); const overall=best.length?Math.round(avg(best)):null; S.fusionScore=overall;
+ box.innerHTML=`<div class="fusion-events"><div class="fusion-event-card rise"><div class="fusion-event-title">🌅 朝霞融合数据</div><strong>${riseF.sc==null?'--':riseF.sc}<em>/100</em></strong><b>${riseF.lv}</b><span>置信度 ${Math.round(riseF.conf)}% · ${riseF.dir}</span></div><div class="fusion-event-card set"><div class="fusion-event-title">🌇 晚霞融合数据</div><strong>${setF.sc==null?'--':setF.sc}<em>/100</em></strong><b>${setF.lv}</b><span>置信度 ${Math.round(setF.conf)}% · ${setF.dir}</span></div></div><div class="fusion-overall">全天综合参考：<strong>${overall==null?'--':overall}</strong>/100 · ${overall==null?'等待数据':overall>=80?'重点关注':overall>=65?'值得关注':'一般'}</div>`;
  const src=document.getElementById('fusionSources'); if(src){
   const cards=['gfs','ecmwf','kma'].map(n=>{const md=S.models[n],ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[],v=ds[idx]?.score;return `<div class="sourcebox"><small>${n==='gfs'?'NOAA GFS':n==='ecmwf'?'ECMWF IFS':'KMA'}</small><b>${v==null?'暂无':Math.round(v)+' / 100'}</b><small>${v==null?'不可用':v>=75?'偏强':v>=50?'中等':'偏弱'}</small></div>`});
   if(pro!=null)cards.push(`<div class="sourcebox"><small>专业数据</small><b>${Math.round(pro)} / 100</b><small>原始鲜艳度 ${Math.max(proSet??-1,proRise??-1)>=0?Math.max(proSet??-1,proRise??-1).toFixed(3):'--'}</small></div>`);
   src.innerHTML=cards.join('');
  }
- const detail=document.getElementById('fusionDetail'); if(detail){detail.textContent=score==null?'正在等待足够的数据源返回。':`融合依据：GFS / ECMWF / KMA 的云层结构、能见度、降水、风场与 AOD 特征，结合专业数据源的原始鲜艳度进行交叉验证。当前参与 ${vals.length} 个数据源；分数离散度 ${Math.round(spread)} 分。${spread<15?'多源结果较集中，适合重点关注。':'各源存在一定差异，建议临近日出/日落前刷新并结合现场云层。'}`;}
- const cf=document.getElementById('fusionConfidence'); if(cf)cf.textContent=`多源一致性：${Math.round(confidence)}%。${labels.length?'参与数据：'+labels.join(' · '):'等待数据源返回'}。`;
+ const detail=document.getElementById('fusionDetail'); if(detail){detail.textContent=overall==null?'正在等待足够的数据源返回。':`朝霞与晚霞分别融合：朝霞 ${riseF.sc??'--'} 分，晚霞 ${setF.sc??'--'} 分。综合依据 GFS / ECMWF / KMA 的云层结构、能见度、降水、风场与 AOD，并结合专业数据源原始鲜艳度交叉验证。`;}
+ const cf=document.getElementById('fusionConfidence'); if(cf)cf.textContent=`朝霞融合置信度：${Math.round(riseF.conf)}% · 晚霞融合置信度：${Math.round(setF.conf)}%。融合同时参考 GFS / ECMWF / KMA 与专业数据源。`;
 }
 
 function compare(){
