@@ -86,8 +86,7 @@ header .logo,
   <button class="tab on" onclick="switchModel('fusion',this)">★ LJ天气增强</button>
   <button class="tab" onclick="switchModel('gfs',this)">GFS</button>
   <button class="tab" onclick="switchModel('ecmwf',this)">ECMWF</button>
-  <button class="tab" onclick="switchModel('cma',this)">CMA-MESO</button>
-  <button class="tab" onclick="switchModel('sunsetbot',this)">🔥 SunsetBot</button>
+    <button class="tab" onclick="switchModel('sunsetbot',this)">🔥 SunsetBot</button>
  </div>
  <div id="modelNote" class="sub">LJ天气思路增强：云层结构 + 能见度 + 降水 + AOD + 日出日落附近太阳高度 + 多模型一致性。仅参考公开特征，不复制其内部专有算法。</div>
  <div id="forecast" class="daily-list" style="margin-top:12px"></div>
@@ -180,7 +179,7 @@ header .logo,
 
 
 <footer>
-数据接口：Open-Meteo Forecast / ECMWF / GFS / CMA-MESO、Air Quality/CAMS，以及 SunsetBot 官方公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；CMA-MESO 数据按可用模型返回。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
+数据接口：Open-Meteo Forecast / ECMWF / GFS、Air Quality/CAMS，以及专业数据源公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
 </footer>
 </div>
 
@@ -250,13 +249,13 @@ function dayScores(data,air){
  return out;
 }
 function fusionDayScores(dateIndex){
- const available=['gfs','ecmwf','cma'].filter(n=>S.models[n] && !S.models[n].error);
+ const available=['gfs','ecmwf'].filter(n=>S.models[n] && !S.models[n].error);
  if(!available.length)return [];
  const maps=available.map(n=>dayScores(S.models[n],S.air));
  const len=Math.max(...maps.map(x=>x.length)); const out=[];
  for(let i=0;i<len;i++){
    const vals=maps.map(x=>x[i]).filter(Boolean); if(!vals.length)continue;
-   const weights=available.map(n=>n==='ecmwf'?0.42:n==='gfs'?0.38:0.20);
+   const weights=available.map(n=>n==='ecmwf'?0.50:0.50);
    let wsum=0,am=0,pm=0; vals.forEach((v,j)=>{const w=weights[available.indexOf(available[j])]||.2; wsum+=w;am+=v.am*w;pm+=v.pm*w});
    am=Math.round(am/wsum);pm=Math.round(pm/wsum);
    const spread=Math.max(...vals.map(v=>v.am),...vals.map(v=>v.pm))-Math.min(...vals.map(v=>v.am),...vals.map(v=>v.pm));
@@ -267,7 +266,6 @@ function fusionDayScores(dateIndex){
  return out;
 }
 async function fetchModel(name){
- if(name==='cma') throw new Error('CMA-MESO 官方数据需要授权访问');
  let base='https://api.open-meteo.com/v1/forecast',p={latitude:S.lat,longitude:S.lon,timezone:'auto',forecast_days:16,hourly:weatherVars,daily:'sunrise,sunset',models:name==='gfs'?'gfs_seamless':'ecmwf_ifs'};
  const ac=new AbortController(); const timer=setTimeout(()=>ac.abort(),9000);
  try{let r=await fetch(api(base,p),{signal:ac.signal,cache:'no-store'}); if(!r.ok) throw new Error(name.toUpperCase()+' 模型 HTTP '+r.status); return await r.json();}
@@ -284,8 +282,8 @@ async function load(){
  if(S.lat==null)return;
  // SunsetBot 不再等待天气模型加载完成后才启动，避免任一天气接口卡住导致官方源永远停在“初始化”。
  if(!S.sbLoading) loadSunsetBot();
- setStatus('正在请求 GFS / ECMWF / CMA-MESO…');
- const names=['gfs','ecmwf','cma'];
+ setStatus('正在请求 GFS / ECMWF…');
+ const names=['gfs','ecmwf'];
  const airPromise=fetchAir();
  const results=await Promise.allSettled(names.map(n=>fetchModel(n)));
  results.forEach((r,i)=>{S.models[names[i]]=r.status==='fulfilled'?r.value:null});
@@ -326,7 +324,7 @@ function renderWeather7(d){
 }
 
 function render(){
- let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.cma;
+ let d=S.models[S.active]||S.models.ecmwf||S.models.gfs;
  if(!d){setStatus('没有获得天气数据');return}
  renderWeather7(d);
  let airArr=S.air?.hourly?.aerosol_optical_depth||[],air={aod:airArr};
@@ -347,7 +345,7 @@ function render(){
  setStatus('已联网 · '+new Date().toLocaleTimeString()+' 更新');
 }
 function selectDay(i,rerender=true){
- S.selected=i; let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.cma;if(!d)return;
+ S.selected=i; let d=S.models[S.active]||S.models.ecmwf||S.models.gfs;if(!d)return;
  let days=S.active==='fusion'?fusionDayScores():dayScores(d,S.air),x=days[i],h=d.hourly;
  renderEventAnalysis(x,d);
  document.querySelectorAll('.daily-row').forEach((e,j)=>e.classList.toggle('sel',j===i));
@@ -357,7 +355,7 @@ function selectDay(i,rerender=true){
  let ri=h.time.findIndex(t=>t===x.rise);if(ri<0)ri=h.time.findIndex(t=>t.startsWith(x.date));let si=h.time.findIndex(t=>t===x.set);if(si<0)si=ri+12;
  let ix=x.kind==='朝霞'?ri:si, vals={high:h.cloud_cover_high[ix],mid:h.cloud_cover_mid[ix],low:h.cloud_cover_low[ix],vis:h.visibility[ix]};
  document.getElementById('high').textContent=Math.round(vals.high??0)+'%';document.getElementById('mid').textContent=Math.round(vals.mid??0)+'%';document.getElementById('low').textContent=Math.round(vals.low??0)+'%';document.getElementById('vis').textContent=vals.vis?Math.round(vals.vis/100)/10+' km':'--';
- renderAdvanced(); document.getElementById('explain').textContent=`${x.kind} ${x.score}分：LJ天气思路增强版更重视高/中云结构、低云不过量、能见度、降水和AOD，并在日出/日落前后扫描最佳窗口；融合模式还会根据 GFS / ECMWF / CMA-MESO 一致性做小幅置信度修正。`;
+ renderAdvanced(); document.getElementById('explain').textContent=`${x.kind} ${x.score}分：LJ天气思路增强版更重视高/中云结构、低云不过量、能见度、降水和AOD，并在日出/日落前后扫描最佳窗口；融合模式还会根据 GFS / ECMWF 一致性做小幅置信度修正。`;
 }
 function eventAnalysis(x,d,idx){
  const h=d?.hourly||{}, ri=h.time?.findIndex(t=>t===x.rise), si=h.time?.findIndex(t=>t===x.set);
@@ -441,7 +439,7 @@ function renderAdvanced(){
  initMap();
  document.getElementById('lat').textContent=S.lat?.toFixed(4)??'--';document.getElementById('lon').textContent=S.lon?.toFixed(4)??'--';
  document.getElementById('mapInfo').textContent=S.place||'当前观测点';
- const d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.cma;
+ const d=S.models[S.active]||S.models.ecmwf||S.models.gfs;
  const days=d?dayScores(d,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[];
  const fallbackDate=new Date().toISOString().slice(0,10);
  const x=days[S.selected]||days[0]||{date:fallbackDate,set:null,rise:null,kind:'晚霞',amHour:null,pmHour:null};
@@ -459,14 +457,14 @@ function renderAdvanced(){
  document.getElementById('timelineText').textContent=`${x.kind}最佳窗口约为 ${(x.kind==='朝霞'?x.amHour?.slice(11,16):x.pmHour?.slice(11,16))||'--:--'} 附近；日落方向 ${dir} ${Math.round(az)}°。建议提前 25 分钟到位，并根据现场云层实时变化调整构图。`;
  const selected=dayScores(d,{aod:S.air?.hourly?.aerosol_optical_depth||[]})[S.selected];
  const cards=[];
- for(const n of ['gfs','ecmwf','cma']){
+ for(const n of ['gfs','ecmwf']){
   const md=S.models[n], ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[];
   const sc=ds[S.selected]?.score;
-  cards.push(`<div class="sourcebox"><small>${n==='gfs'?'NOAA GFS':n==='ecmwf'?'ECMWF IFS':'CMA-MESO'}</small><b>${sc==null?'暂无':sc+' / 100'}</b><small>${sc==null?'数据源暂不可用':sc>=75?'偏强':sc>=50?'中等':'偏弱'}</small></div>`);
+  cards.push(`<div class="sourcebox"><small>${n==='gfs'?'NOAA GFS':n==='ecmwf'?'ECMWF IFS':'GFS / ECMWF'}</small><b>${sc==null?'暂无':sc+' / 100'}</b><small>${sc==null?'数据源暂不可用':sc>=75?'偏强':sc>=50?'中等':'偏弱'}</small></div>`);
  }
  cards.push(`<div class="sourcebox"><small>我们的融合</small><b>${selected.score} / 100</b><small>${selected.score>=80?'大烧':selected.score>=65?'较强':selected.score>=45?'一般':'偏弱'}</small></div>`);
  document.getElementById('sourceCards').innerHTML=cards.join('');
- const nums=['gfs','ecmwf','cma'].map(n=>S.models[n]&&!S.models[n].error?dayScores(S.models[n],{aod:S.air?.hourly?.aerosol_optical_depth||[]})[S.selected]?.score:null).filter(v=>v!=null);
+ const nums=['gfs','ecmwf'].map(n=>S.models[n]&&!S.models[n].error?dayScores(S.models[n],{aod:S.air?.hourly?.aerosol_optical_depth||[]})[S.selected]?.score:null).filter(v=>v!=null);
  const spread=nums.length>1?Math.max(...nums)-Math.min(...nums):50;
  const conf=clamp(96-spread*1.7);
  document.getElementById('confidence').textContent=`模型一致性：${conf.toFixed(0)}%。${spread<10?'多个模型意见高度一致，适合重点关注。':spread<20?'模型存在一定分歧，建议临近日落再次刷新。':'模型分歧较大，建议结合现场云层和卫星图判断。'} 未来越远，预测不确定性通常越高。`;
@@ -474,11 +472,11 @@ function renderAdvanced(){
 function compare(){
   const box=document.getElementById('compare'); if(!box)return;
   const rows=[];
-  for(const n of ['gfs','ecmwf','cma']){
+  for(const n of ['gfs','ecmwf']){
     const md=S.models[n];
     const ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[];
     const v=ds[S.selected]?.score;
-    rows.push({n,v:v==null?null:Math.round(v),label:n==='gfs'?'GFS':n==='ecmwf'?'ECMWF':'CMA-MESO',desc:v==null?'暂无可用模型':'当前选中日期'});
+    rows.push({n,v:v==null?null:Math.round(v),label:n==='gfs'?'GFS':n==='ecmwf'?'ECMWF':'GFS / ECMWF',desc:v==null?'暂无可用模型':'当前选中日期'});
   }
   const vals=rows.map(x=>x.v).filter(v=>v!=null);
   const fusion=vals.length?Math.round(avg(vals)):null;
@@ -500,9 +498,9 @@ function switchModel(n,el){
   }
   S.active=n==='fusion'?'ecmwf':n;
   document.getElementById('modelNote').textContent=n==='fusion'
-    ?'LJ天气思路增强：GFS / ECMWF / CMA-MESO 加权融合，并结合最佳霞光窗口、云层结构、能见度、降水和 AOD。'
-    :n==='cma'
-      ?'CMA-MESO：中国气象局中尺度模式。当前版本仅在取得可用的 CMA-MESO 授权数据后参与融合，不用其他模型冒充。'
+    ?'LJ天气思路增强：GFS / ECMWF 加权融合，并结合最佳霞光窗口、云层结构、能见度、降水和 AOD。'
+    :false
+      ?'GFS / ECMWF：双全球模型交叉验证，按模型一致性进行融合。'
       :'当前数据源：'+n.toUpperCase()+'。';
   render();
 }
