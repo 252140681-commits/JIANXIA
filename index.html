@@ -43,6 +43,10 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 .sb-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid rgba(255,140,50,.18);border-radius:12px;background:rgba(255,140,50,.045)}
 .sb-control-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sb-label{font-size:12px;color:#888;min-width:54px}.sb-controls button{border:1px solid #ddd;background:#fff;border-radius:9px;padding:7px 14px;font-weight:600;cursor:pointer}.sb-controls button.on{background:#f28c28;color:#fff;border-color:#f28c28}
 .sb-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#777}.sb-diff{margin-top:10px;font-size:12px;line-height:1.55;color:#777}
+
+.fusion-summary{margin-top:14px}.fusion-main{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}.fusion-main>div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.fusion-main small{display:block;color:#9aa4b2;font-size:12px}.fusion-main strong{display:block;font-size:36px;line-height:1.05;margin:7px 0}.fusion-main strong em{font-size:13px;font-style:normal;color:#8f98a6;margin-left:3px}.fusion-main b{font-size:14px}.fusion-confidence strong{font-size:26px}.fusion-confidence span{display:block;margin-top:7px;color:#c5ccd6;font-size:13px;line-height:1.5}.fusion-detail{margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.035);color:#bfc7d2;font-size:13px;line-height:1.6}.fusion-summary + .sources{margin-top:12px}
+@media(max-width:680px){.fusion-main{grid-template-columns:1fr}}
+
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -57,6 +61,10 @@ header .logo,
 .logo-wrap {
   margin-left: 10px !important;
 }
+
+.fusion-summary{margin-top:14px}.fusion-main{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}.fusion-main>div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.fusion-main small{display:block;color:#9aa4b2;font-size:12px}.fusion-main strong{display:block;font-size:36px;line-height:1.05;margin:7px 0}.fusion-main strong em{font-size:13px;font-style:normal;color:#8f98a6;margin-left:3px}.fusion-main b{font-size:14px}.fusion-confidence strong{font-size:26px}.fusion-confidence span{display:block;margin-top:7px;color:#c5ccd6;font-size:13px;line-height:1.5}.fusion-detail{margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.035);color:#bfc7d2;font-size:13px;line-height:1.6}.fusion-summary + .sources{margin-top:12px}
+@media(max-width:680px){.fusion-main{grid-template-columns:1fr}}
+
 </style>
 
 </head>
@@ -87,63 +95,44 @@ header .logo,
   <button class="tab" onclick="switchModel('gfs',this)">GFS</button>
   <button class="tab" onclick="switchModel('ecmwf',this)">ECMWF</button>
   <button class="tab" onclick="switchModel('kma',this)">KMA</button>
-  <button class="tab" onclick="switchModel('sunsetbot',this)">🔥 SunsetBot</button>
  </div>
  <div id="modelNote" class="sub">LJ天气思路增强：云层结构 + 能见度 + 降水 + AOD + 日出日落附近太阳高度 + 多模型一致性。仅参考公开特征，不复制其内部专有算法。</div>
  <div id="forecast" class="daily-list" style="margin-top:12px"></div>
 </section>
 
-<section class="card">
- <h2>选中日期 · 霞光判断</h2>
- <div class="row"><div class="big" id="score">--</div><div><div class="level" id="level">等待数据</div><div class="sub" id="window">最佳拍摄时间：--</div></div></div>
- <div class="kpis" style="margin-top:12px">
-  <div class="kpi"><small>日出</small><strong id="sunrise">--</strong></div>
-  <div class="kpi"><small>日落</small><strong id="sunset">--</strong></div>
-  <div class="kpi"><small>高云</small><strong id="high">--</strong></div>
-  <div class="kpi"><small>中云</small><strong id="mid">--</strong></div>
-  <div class="kpi"><small>低云</small><strong id="low">--</strong></div>
-  <div class="kpi"><small>能见度</small><strong id="vis">--</strong></div>
- </div>
-</section>
+
 </div>
 
 <section class="card" style="margin-top:14px">
- <h2>🌅 朝霞 / 🌇 晚霞 · 单独数据分析</h2>
- <div id="sourceCards" class="sources"></div>
- <div class="notice" id="confidence">正在计算模型一致性、云层结构和大气条件置信度…</div>
- <div class="dual-analysis">
-  <div class="analysis-panel morning"><h3>🌅 朝霞 · 单独数据分析</h3><div id="morningAnalysis" class="analysis-grid"></div></div>
-  <div class="analysis-panel evening"><h3>🌇 晚霞 · 单独数据分析</h3><div id="eveningAnalysis" class="analysis-grid"></div></div>
- </div>
-</section>
-
-<section class="card" style="margin-top:14px">
- <h2>🧠 为什么今天值得拍</h2>
- <div class="notice" id="shootReason">正在生成今天值得拍的具体原因…</div>
+ <div class="sectionhead"><div><h2>🧩 多源融合数据</h2><div class="sub">综合 GFS、ECMWF、KMA 与专业数据源，结合云层结构、能见度、降水、AOD及模型一致性给出综合判断</div></div></div>
+ <div id="fusionSummary" class="fusion-summary"></div>
+ <div id="fusionSources" class="sources"></div>
+ <div class="notice" id="fusionConfidence">正在计算多源一致性与融合置信度…</div>
+ <div class="fusion-detail" id="fusionDetail">等待数据…</div>
 </section>
 
 <section class="card" id="sunsetBotCard" style="margin-top:14px">
- <h2>🔥 SunsetBot 官方数据源</h2>
- <div class="sub">这里不是重新计算 SunsetBot 的分数，而是直接调用其公开 JSON 查询接口，保留 SunsetBot 原始鲜艳度与 AOD。根据其公开页面，它的核心数据来自 NCEP-GFS / ECMWF 云况 + CAMS 气溶胶，并考虑持续时间、云量、云底高度、云层照明遮挡与 AOD 等因素。 </div>
- <div class="sb-controls" aria-label="SunsetBot 官方数据选择">
+ <h2>🛰️ 专业数据源</h2>
+ <div class="sub">直接读取专业数据源的公开 JSON 结果，保留原始鲜艳度与 AOD，并与 GFS / ECMWF / KMA 联合分析。</div>
+ <div class="sb-controls" aria-label="专业数据源选择">
   <div class="sb-control-group"><span class="sb-label">数据日期</span><div>
    <button id="sbDay1" class="on" onclick="setSbDay(1)">今天</button>
    <button id="sbDay2" onclick="setSbDay(2)">明天</button>
   </div></div>
-  <div class="sb-control-group"><span class="sb-label">官方模型</span><div>
+  <div class="sb-control-group"><span class="sb-label">专业模型</span><div>
    <button id="sbGfs" class="on" onclick="setSbModel('GFS')">GFS</button>
    <button id="sbEc" onclick="setSbModel('EC')">EC</button>
   </div></div>
  </div>
  <div class="kpis" style="margin-top:12px">
-  <div class="kpi"><small>官方晚霞</small><strong id="sbSet">加载中…</strong></div>
-  <div class="kpi"><small>官方朝霞</small><strong id="sbRise">加载中…</strong></div>
-  <div class="kpi"><small>官方 AOD</small><strong id="sbAod">--</strong></div>
-  <div class="kpi"><small>官方模型</small><strong id="sbModel">GFS</strong></div>
+  <div class="kpi"><small>专业晚霞</small><strong id="sbSet">加载中…</strong></div>
+  <div class="kpi"><small>专业朝霞</small><strong id="sbRise">加载中…</strong></div>
+  <div class="kpi"><small>专业 AOD</small><strong id="sbAod">--</strong></div>
+  <div class="kpi"><small>专业模型</small><strong id="sbModel">GFS</strong></div>
  </div>
  <div class="sb-meta"><span id="sbEventTime">事件时间：--</span><span id="sbUpdateTime">本次查询：--</span></div>
- <div class="sb-diff" id="sbDiff">提示：SunsetBot 官方鲜艳度不是百分制，不能直接与“见霞”0–100分比较；这里显示的是官方原始值。GFS/EC、今天/明天都可单独切换。</div>
- <div class="notice" id="sbStatus">正在初始化 SunsetBot 官方数据源 …</div>
+ <div class="sb-diff" id="sbDiff">提示：专业数据源的原始鲜艳度与见霞综合评分采用不同量纲；这里保留原始值，并在下方融合模块中统一归一化参考。</div>
+ <div class="notice" id="sbStatus">正在初始化专业数据源 …</div>
 </section>
 
 
@@ -180,12 +169,12 @@ header .logo,
 
 
 <footer>
-数据接口：Open-Meteo Forecast / ECMWF / GFS / KMA、Air Quality/CAMS，以及 SunsetBot 官方公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；KMA 数据按可用模型返回。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
+数据接口：Open-Meteo Forecast / ECMWF / GFS / KMA、Air Quality/CAMS，以及 专业数据公开 JSON 接口。Open-Meteo 提供无 API Key 的公开天气接口；ECMWF IFS 可到 15 天、GFS 可到 16 天；KMA 数据按可用模型返回。空气质量接口可提供 AOD，但其预报通常最长 7 天，因此 8～16 天霞光评分会降低 AOD 权重。
 </footer>
 </div>
 
 <script>
-const S={sbLoading:false,lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0,sbModelChoice:'GFS',sbDay:1,sbLoading:false};
+const S={sbLoading:false,lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0,sbModelChoice:'GFS',sbDay:1,sbLoading:false,sbData:{},fusionScore:null};
 const api=(base,p)=>base+'?'+new URLSearchParams(p);
 const weatherVars='cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability,wind_speed_10m,wind_direction_10m,temperature_2m,relative_humidity_2m';
 function avg(a){a=a.filter(x=>Number.isFinite(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
@@ -282,14 +271,14 @@ async function fetchAir(){
 }
 async function load(){
  if(S.lat==null)return;
- // SunsetBot 不再等待天气模型加载完成后才启动，避免任一天气接口卡住导致官方源永远停在“初始化”。
+ // 专业数据源不再等待天气模型加载完成后才启动，避免任一天气接口卡住导致官方源永远停在“初始化”。
  if(!S.sbLoading) loadSunsetBot();
  setStatus('正在请求 GFS / ECMWF / KMA…');
  const names=['gfs','ecmwf','kma'];
  const airPromise=fetchAir();
  const results=await Promise.allSettled(names.map(n=>fetchModel(n)));
  results.forEach((r,i)=>{S.models[names[i]]=r.status==='fulfilled'?r.value:null});
- S.air=await airPromise; render();
+ S.air=await airPromise; render(); renderFusionData();
 }
 function setRange(n,el){S.range=n;document.querySelectorAll('.mini').forEach(x=>x.classList.remove('on'));el.classList.add('on');render();}
 function setStatus(x){document.getElementById('status').textContent='联网状态：'+x}
@@ -349,15 +338,8 @@ function render(){
 function selectDay(i,rerender=true){
  S.selected=i; let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.kma;if(!d)return;
  let days=S.active==='fusion'?fusionDayScores():dayScores(d,S.air),x=days[i],h=d.hourly;
- renderEventAnalysis(x,d);
  document.querySelectorAll('.daily-row').forEach((e,j)=>e.classList.toggle('sel',j===i));
- document.getElementById('score').textContent=x.score;document.getElementById('level').textContent=`${x.kind} ${x.score>=80?'🔥 大烧':x.score>=65?'🟠 较强':x.score>=45?'🟡 一般':'🔵 偏弱'} · 朝霞 ${x.am} / 晚霞 ${x.pm}`;
- document.getElementById('window').textContent=(x.kind==='朝霞'?'最佳拍摄：日出前 25～日出后 20 分钟':'最佳拍摄：日落前 25～日落后 30 分钟');
- document.getElementById('sunrise').textContent=fmtTime(x.rise);document.getElementById('sunset').textContent=fmtTime(x.set);
- let ri=h.time.findIndex(t=>t===x.rise);if(ri<0)ri=h.time.findIndex(t=>t.startsWith(x.date));let si=h.time.findIndex(t=>t===x.set);if(si<0)si=ri+12;
- let ix=x.kind==='朝霞'?ri:si, vals={high:h.cloud_cover_high[ix],mid:h.cloud_cover_mid[ix],low:h.cloud_cover_low[ix],vis:h.visibility[ix]};
- document.getElementById('high').textContent=Math.round(vals.high??0)+'%';document.getElementById('mid').textContent=Math.round(vals.mid??0)+'%';document.getElementById('low').textContent=Math.round(vals.low??0)+'%';document.getElementById('vis').textContent=vals.vis?Math.round(vals.vis/100)/10+' km':'--';
- renderAdvanced(); document.getElementById('explain').textContent=`${x.kind} ${x.score}分：LJ天气思路增强版更重视高/中云结构、低云不过量、能见度、降水和AOD，并在日出/日落前后扫描最佳窗口；融合模式还会根据 GFS / ECMWF / KMA 一致性做小幅置信度修正。`;
+ renderAdvanced(); renderFusionData();
 }
 function eventAnalysis(x,d,idx){
  const h=d?.hourly||{}, ri=h.time?.findIndex(t=>t===x.rise), si=h.time?.findIndex(t=>t===x.set);
@@ -445,32 +427,51 @@ function renderAdvanced(){
  const days=d?dayScores(d,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[];
  const fallbackDate=new Date().toISOString().slice(0,10);
  const x=days[S.selected]||days[0]||{date:fallbackDate,set:null,rise:null,kind:'晚霞',amHour:null,pmHour:null};
- // 日落方向是天文几何量，与天气模型无关；即使天气数据暂时失败也必须显示。
- const az=sunAzimuthApprox(x.date,x.set);
- const dir=degDir(az);
- document.getElementById('azimuth').textContent=Math.round(az)+'°';
- document.getElementById('direction').textContent=dir;
- document.getElementById('mapSunsetDirection').textContent=dir;
- document.getElementById('mapSunsetAzimuth').textContent=Math.round(az)+'°';
- document.getElementById('needle').style.transform=`rotate(${az}deg)`;
+ const az=sunAzimuthApprox(x.date,x.set),dir=degDir(az);
+ if(document.getElementById('azimuth')) document.getElementById('azimuth').textContent=Math.round(az)+'°';
+ if(document.getElementById('direction')) document.getElementById('direction').textContent=dir;
+ if(document.getElementById('mapSunsetDirection')) document.getElementById('mapSunsetDirection').textContent=dir;
+ if(document.getElementById('mapSunsetAzimuth')) document.getElementById('mapSunsetAzimuth').textContent=Math.round(az)+'°';
+ if(document.getElementById('needle')) document.getElementById('needle').style.transform=`rotate(${az}deg)`;
  if(mapObj){mapObj.setView([S.lat,S.lon],11);if(markerObj)markerObj.setLatLng([S.lat,S.lon]); updateMapSunArrows(x.date);}
  const rise=x.rise?.slice(11,16)||'--:--',set=x.set?.slice(11,16)||'--:--';
- const tl=document.getElementById('timeline');tl.innerHTML=`<div class="line"></div><div class="sun" style="left:78%"></div><span class="mark" style="left:12%">${rise}</span><span class="mark" style="left:78%">${set}</span><span class="mark" style="left:45%">最佳窗口</span>`;
- document.getElementById('timelineText').textContent=`${x.kind}最佳窗口约为 ${(x.kind==='朝霞'?x.amHour?.slice(11,16):x.pmHour?.slice(11,16))||'--:--'} 附近；日落方向 ${dir} ${Math.round(az)}°。建议提前 25 分钟到位，并根据现场云层实时变化调整构图。`;
- const selected=dayScores(d,{aod:S.air?.hourly?.aerosol_optical_depth||[]})[S.selected];
- const cards=[];
- for(const n of ['gfs','ecmwf','kma']){
-  const md=S.models[n], ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[];
-  const sc=ds[S.selected]?.score;
-  cards.push(`<div class="sourcebox"><small>${n==='gfs'?'NOAA GFS':n==='ecmwf'?'ECMWF IFS':'KMA'}</small><b>${sc==null?'暂无':sc+' / 100'}</b><small>${sc==null?'数据源暂不可用':sc>=75?'偏强':sc>=50?'中等':'偏弱'}</small></div>`);
- }
- cards.push(`<div class="sourcebox"><small>我们的融合</small><b>${selected.score} / 100</b><small>${selected.score>=80?'大烧':selected.score>=65?'较强':selected.score>=45?'一般':'偏弱'}</small></div>`);
- document.getElementById('sourceCards').innerHTML=cards.join('');
- const nums=['gfs','ecmwf','kma'].map(n=>S.models[n]?dayScores(S.models[n],{aod:S.air?.hourly?.aerosol_optical_depth||[]})[S.selected]?.score:null).filter(v=>v!=null);
- const spread=nums.length>1?Math.max(...nums)-Math.min(...nums):50;
- const conf=clamp(96-spread*1.7);
- document.getElementById('confidence').textContent=`模型一致性：${conf.toFixed(0)}%。${spread<10?'多个模型意见高度一致，适合重点关注。':spread<20?'模型存在一定分歧，建议临近日落再次刷新。':'模型分歧较大，建议结合现场云层和卫星图判断。'} 未来越远，预测不确定性通常越高。`;
+ const tl=document.getElementById('timeline'); if(tl) tl.innerHTML=`<div class="line"></div><div class="sun" style="left:78%"></div><span class="mark" style="left:12%">${rise}</span><span class="mark" style="left:78%">${set}</span><span class="mark" style="left:45%">最佳窗口</span>`;
+ const tt=document.getElementById('timelineText'); if(tt) tt.textContent=`${x.kind}最佳窗口约为 ${(x.kind==='朝霞'?x.amHour?.slice(11,16):x.pmHour?.slice(11,16))||'--:--'} 附近；日落方向 ${dir} ${Math.round(az)}°。建议提前 25 分钟到位，并根据现场云层实时变化调整构图。`;
 }
+
+function professionalToScore(v){
+ const n=sbValue(v); if(n==null)return null;
+ // 专业源原始鲜艳度不是百分制，采用分段归一化仅用于多源融合，不覆盖原始值。
+ return clamp(n<=0?0:n<0.2?n/0.2*45:n<0.5?45+(n-0.2)/0.3*20:n<1?65+(n-0.5)/0.5*15:n<2?80+(n-1)/1*15:95+(Math.min(n,3)-2)*5);
+}
+function renderFusionData(){
+ const box=document.getElementById('fusionSummary'); if(!box)return;
+ const idx=S.selected;
+ const vals=[]; const labels=[];
+ for(const n of ['gfs','ecmwf','kma']){
+   const md=S.models[n]; const ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[]; const v=ds[idx]?.score;
+   if(v!=null){vals.push(v);labels.push(`${n.toUpperCase()} ${Math.round(v)}`)}
+ }
+ const proSet=professionalToScore(S.sbData?.set?.tb_quality), proRise=professionalToScore(S.sbData?.rise?.tb_quality);
+ const pro=proSet!=null&&proRise!=null?Math.max(proSet,proRise):(proSet??proRise);
+ if(pro!=null && idx<2){vals.push(pro);labels.push(`专业数据 ${Math.round(pro)}`)}
+ const base=vals.length?avg(vals):null;
+ const spread=vals.length>1?Math.max(...vals)-Math.min(...vals):0;
+ const confidence=vals.length>=3?clamp(97-spread*1.8):vals.length===2?clamp(88-spread*1.6):65;
+ const score=base==null?null:Math.round(base*(0.82+confidence/100*0.18));
+ S.fusionScore=score;
+ const level=score==null?'等待数据':score>=80?'🔥 大烧':score>=65?'🟠 较强':score>=45?'🟡 一般':'🔵 偏弱';
+ const direction=score==null?'等待模型':spread<10?'多源高度一致，可信度较高':spread<20?'多源基本一致，建议临近拍摄再次刷新':'模型分歧较明显，建议结合现场云层观察';
+ box.innerHTML=`<div class="fusion-main"><div><small>综合霞光评分</small><strong>${score==null?'--':score}<em>/100</em></strong><b>${level}</b></div><div class="fusion-confidence"><small>融合置信度</small><strong>${Math.round(confidence)}%</strong><span>${direction}</span></div></div>`;
+ const src=document.getElementById('fusionSources'); if(src){
+  const cards=['gfs','ecmwf','kma'].map(n=>{const md=S.models[n],ds=md?dayScores(md,{aod:S.air?.hourly?.aerosol_optical_depth||[]}):[],v=ds[idx]?.score;return `<div class="sourcebox"><small>${n==='gfs'?'NOAA GFS':n==='ecmwf'?'ECMWF IFS':'KMA'}</small><b>${v==null?'暂无':Math.round(v)+' / 100'}</b><small>${v==null?'不可用':v>=75?'偏强':v>=50?'中等':'偏弱'}</small></div>`});
+  if(pro!=null)cards.push(`<div class="sourcebox"><small>专业数据</small><b>${Math.round(pro)} / 100</b><small>原始鲜艳度 ${Math.max(proSet??-1,proRise??-1)>=0?Math.max(proSet??-1,proRise??-1).toFixed(3):'--'}</small></div>`);
+  src.innerHTML=cards.join('');
+ }
+ const detail=document.getElementById('fusionDetail'); if(detail){detail.textContent=score==null?'正在等待足够的数据源返回。':`融合依据：GFS / ECMWF / KMA 的云层结构、能见度、降水、风场与 AOD 特征，结合专业数据源的原始鲜艳度进行交叉验证。当前参与 ${vals.length} 个数据源；分数离散度 ${Math.round(spread)} 分。${spread<15?'多源结果较集中，适合重点关注。':'各源存在一定差异，建议临近日出/日落前刷新并结合现场云层。'}`;}
+ const cf=document.getElementById('fusionConfidence'); if(cf)cf.textContent=`多源一致性：${Math.round(confidence)}%。${labels.length?'参与数据：'+labels.join(' · '):'等待数据源返回'}。`;
+}
+
 function compare(){
   const box=document.getElementById('compare'); if(!box)return;
   const rows=[];
@@ -493,14 +494,14 @@ function switchModel(n,el){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
   if(n==='sunsetbot'){
-    document.getElementById('modelNote').textContent='🔥 SunsetBot 官方：直接读取其公开 JSON。官方页面显示其基础为 NCEP-GFS / ECMWF + CAMS，并提供鲜艳度与 AOD。';
+    document.getElementById('modelNote').textContent='🛰️ 专业数据源：直接读取公开 JSON，并与多模型结果融合。';
     document.getElementById('sunsetBotCard').scrollIntoView({behavior:'smooth',block:'center'});
     loadSunsetBot();
     return;
   }
   S.active=n==='fusion'?'ecmwf':n;
   document.getElementById('modelNote').textContent=n==='fusion'
-    ?'LJ天气思路增强：GFS / ECMWF / KMA 加权融合，并结合最佳霞光窗口、云层结构、能见度、降水和 AOD。'
+    ?'LJ天气增强：GFS / ECMWF / KMA + 专业数据源交叉融合，结合云层结构、能见度、降水、AOD与模型一致性。'
     :n==='kma'
       ?'KMA：韩国本地模型。当前 KMA 已提供 KIM/GDPS/LDPS 模型数据；韩国区域优先使用高分辨率 LDPS（可用时）。'
       :'当前数据源：'+n.toUpperCase()+'。';
@@ -520,7 +521,7 @@ function sunsetCityCandidates(){
   push(S.sunsetCity);
   push(S.place?.split(' · ')[0]);
   
-  // SunsetBot 对国内主要城市常用“山东省-济南”这类名称；同时保留“济南”作为兼容候选。
+  // 专业数据源对国内主要城市常用“山东省-济南”这类名称；同时保留“济南”作为兼容候选。
   const copy=[...a]; for(const v of copy){
     push(v.replace(/(特别行政区|自治州|地区|盟|市)$/,''));
     push(v.replace(/市$/,''));
@@ -537,7 +538,7 @@ async function sbRequest(city,event,model){
     const j=await r.json().catch(()=>({status:'error',message:'返回不是 JSON'}));
     if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null)) return j;
     throw new Error(j?.detail || j?.message || ('HTTP '+r.status));
-  }catch(e){throw new Error(e?.name==='AbortError'?'见霞→SunsetBot 请求超过 12 秒':(e?.message||String(e)))}
+  }catch(e){throw new Error(e?.name==='AbortError'?'见霞→专业数据请求超过 12 秒':(e?.message||String(e)))}
   finally{clearTimeout(timer)}
 }
 function sunsetCityCandidates(){
@@ -547,7 +548,7 @@ function sunsetCityCandidates(){
   return a;
 }
 async function fetchSunsetEvent(event,model){
-  const candidates=sunsetCityCandidates(); if(!candidates.length)throw new Error('没有可用于 SunsetBot 的城市名');
+  const candidates=sunsetCityCandidates(); if(!candidates.length)throw new Error('没有可用于专业数据源的城市名');
   const errors=[];
   for(const city of candidates){try{return await sbRequest(city,event,model)}catch(e){errors.push(city+' / '+model+': '+e.message)}}
   throw new Error(errors.slice(-3).join('；')||'官方源暂无数据');
@@ -565,7 +566,7 @@ async function loadSunsetBot(force=false){
   const model=S.sbModelChoice||'GFS', day=S.sbDay||1;
   document.getElementById('sbSet').textContent='加载中…';document.getElementById('sbRise').textContent='加载中…';document.getElementById('sbAod').textContent='--';document.getElementById('sbModel').textContent=model;
   document.getElementById('sbEventTime').textContent='事件时间：--';document.getElementById('sbUpdateTime').textContent='本次查询：'+new Date().toLocaleString('zh-CN',{hour12:false});
-  document.getElementById('sbStatus').textContent=`正在读取 SunsetBot 官方 ${model} 数据 · ${day===1?'今天':'明天'}…`;
+  document.getElementById('sbStatus').textContent=`正在读取专业数据 ${model} · ${day===1?'今天':'明天'}…`;
   const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_'+day,model),fetchSunsetEvent('rise_'+day,model)]);
   const set=setRes.status==='fulfilled'?setRes.value:null,rise=riseRes.status==='fulfilled'?riseRes.value:null;
   const sv=sbValue(set?.tb_quality),rv=sbValue(rise?.tb_quality),sa=sbValue(set?.tb_aod),ra=sbValue(rise?.tb_aod);
@@ -578,12 +579,13 @@ async function loadSunsetBot(force=false){
   if(set||rise){
     const city=set?.display_city_name||rise?.display_city_name||sunsetCityCandidates()[0]||'当前位置';
     const parts=[];if(set)parts.push('晚霞 ✓');else parts.push('晚霞暂无');if(rise)parts.push('朝霞 ✓');else parts.push('朝霞暂无');
-    document.getElementById('sbStatus').textContent=`SunsetBot 官方已连接 · ${city} · ${model} · ${day===1?'今天':'明天'} · ${parts.join(' · ')}`;
+    document.getElementById('sbStatus').textContent=`专业数据源已连接 · ${city} · ${model} · ${day===1?'今天':'明天'} · ${parts.join(' · ')}`;
   }else{
     const e1=setRes.status==='rejected'?setRes.reason?.message:'';const e2=riseRes.status==='rejected'?riseRes.reason?.message:'';
-    document.getElementById('sbStatus').textContent='SunsetBot 官方数据请求失败。'+[e1,e2].filter(Boolean).join('；');
+    document.getElementById('sbStatus').textContent='专业数据源请求失败。'+[e1,e2].filter(Boolean).join('；');
   }
-  S.sbLoading=false;
+  S.sbData={set,rise,model,day,queriedAt:new Date().toISOString()};
+  S.sbLoading=false; renderFusionData();
 }
 let suggestionTimer=null;
 let suggestionResults=[];
