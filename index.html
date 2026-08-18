@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}html,body{width:100%;min-width:0;margin:0;padding:0;overflow-x:hidden}body{background:#07111d;color:#eef5ff;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{--p:#0d1b2c;--p2:#10243a;--line:#243a52;--muted:#8fa7bf;--hot:#ff765e;--gold:#ffc56b;--cyan:#68d9ff}
-.wrap{width:100%;max-width:1250px;margin:0 auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.logo{font-size:23px;font-weight:900}.logo i{color:var(--hot);font-style:normal}.tag{font-size:11px;color:#a9bfd5;border:1px solid var(--line);padding:7px 10px;border-radius:999px}
+.wrap{width:100%;max-width:1250px;margin:0 auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px}.brand{display:flex;align-items:flex-end;gap:8px;min-width:0}.logo-art{position:relative;width:82px;height:42px;display:flex;align-items:center;overflow:visible}.brand-text{position:relative;z-index:5;font-size:30px;font-weight:950;letter-spacing:2px;line-height:1;color:#ff8a24;text-shadow:0 2px 8px rgba(255,138,36,.20)}.sun-disc,.sun-glow,.cloud{display:none}.maker{font-size:10px;color:#7f96ad;font-weight:700;white-space:nowrap;padding-bottom:4px}.tag{font-size:11px;color:#a9bfd5;border:1px solid var(--line);padding:7px 10px;border-radius:999px}.maker{font-size:10px;color:#7f96ad;margin-left:7px;font-weight:600}.weather7{margin-top:14px;overflow:hidden}.weather7-row{display:grid;grid-template-columns:repeat(7,minmax(105px,1fr));gap:7px;overflow-x:auto}.weather7-day{background:#091727;border:1px solid #1e334b;border-radius:11px;padding:9px;min-width:105px}.weather7-day b{font-size:11px}.weather7-day small{display:block;color:#8096aa;font-size:9px;margin-top:2px}.weather7-temp{font-size:15px;font-weight:900;margin-top:7px}.weather7-info{font-size:9px;color:#9fb4c9;margin-top:4px;white-space:nowrap}.weather7-icon{font-size:17px;margin-top:4px}@media(max-width:700px){.weather7-row{grid-template-columns:repeat(7,105px)}.weather7-day{min-width:105px}}
 .hero{padding:18px;border:1px solid var(--line);border-radius:20px;background:radial-gradient(circle at 80% 0,#9b3b3630,transparent 35%),linear-gradient(135deg,#10283f,#0a1625)}
 .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.input{flex:1;min-width:220px;background:#071321;border:1px solid #29435e;color:#fff;padding:12px;border-radius:11px}.btn{border:0;border-radius:11px;padding:12px 16px;font-weight:800;background:linear-gradient(135deg,#ffab64,#ff617b);color:#fff;cursor:pointer}.ghost{background:#0a1726;border:1px solid #29435e;color:#b9cbe0}.meta{margin-top:13px;color:var(--muted);font-size:12px;display:flex;gap:16px;flex-wrap:wrap}.status{margin-top:8px;font-size:11px;color:#77dfa2}
 .grid{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-top:14px}.card{background:rgba(13,27,44,.97);border:1px solid var(--line);border-radius:17px;padding:16px}.card h2{font-size:15px;margin:0 0 13px}.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:10px}.tab{white-space:nowrap;padding:9px 12px;background:#091727;border:1px solid #294058;color:#9fb4c9;border-radius:10px;cursor:pointer}.tab.on{background:#2a1c20;border-color:#ff8365;color:#fff}.sub{font-size:11px;color:var(--muted);line-height:1.6}
@@ -19,6 +19,7 @@
 .notice{margin-top:12px;background:#0a1726;border:1px dashed #31506d;border-radius:12px;padding:12px;color:#9fb4c9;font-size:11px;line-height:1.7}.big{font-size:34px;font-weight:900}.level{font-weight:800;color:var(--hot)}
 footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.forecast{grid-template-columns:repeat(8,100px)}}
+@media(max-width:700px){.top{align-items:flex-start}.logo-art{width:82px;height:42px}.brand-text{font-size:28px}.maker{font-size:9px}.tag{font-size:9px;padding:6px 8px}}
 
 #map{height:330px;border-radius:14px;border:1px solid #223b55;overflow:hidden}.sun-arrow-wrap{background:transparent!important;border:0!important;z-index:1200!important}.sun-arrow{position:absolute;left:29px;top:4px;font-size:38px;font-weight:900;line-height:1;transform-origin:50% 90%;text-shadow:0 2px 5px #000}.sun-arrow.sunset{color:#ff785f}.sun-arrow.sunrise{color:#ffd06a}.sun-arrow-label{position:absolute;left:40px;top:39px;transform:translateX(-50%);white-space:nowrap;background:#071321e8;border:1px solid #38516b;border-radius:7px;padding:3px 6px;font-size:10px;font-weight:800;color:#fff}.sun-arrow-label small{display:block;text-align:center;color:#9fb4c8;font-size:9px}.sun-arrow-label.sunset{border-color:#7a4038}.sun-arrow-label.sunrise{border-color:#79653a}
 .mapwrap{position:relative}.mapbadge{position:absolute;z-index:999;left:12px;top:12px;background:#081522dd;border:1px solid #38516b;border-radius:10px;padding:8px 10px;font-size:11px;color:#d9e7f5}
@@ -42,28 +43,22 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div class="logo">见霞</div><div class="tag">实时 · 多源霞光预报 · LJ天气思路增强</div></div>
+<div class="top"><div class="brand" aria-label="见霞 大鹏制作"><div class="logo-art"><span class="sun-disc"></span><span class="sun-glow"></span><span class="cloud cloud-a"></span><span class="cloud cloud-b"></span><span class="brand-text">见霞</span></div><span class="maker">大鹏制作</span></div><div class="tag">实时 · 多源霞光预报 · LJ天气思路增强</div></div>
 
 <section class="hero">
  <div class="row">
-  <div class="searchbox"><input id="place" class="input" value="山东济南" autocomplete="off" placeholder="输入城市或地址，例如：山东济南 / 北京朝阳 / 上海浦东" oninput="suggestPlaces()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchPlace()}"/><div id="suggestions" class="suggestions"></div></div>
-  <button class="btn" onclick="searchPlace()">搜索地址</button>
-  <button class="btn ghost" onclick="locate()">📍 自动定位</button><button class="btn ghost" onclick="load()">↻ 刷新数据</button>
+  <button class="btn" onclick="locate()">📍 自动定位</button>
+  <button class="btn ghost" onclick="load()">↻ 刷新数据</button>
  </div>
- <div id="meta" class="meta">请输入地址或使用自动定位</div>
+ <div id="meta" class="meta">等待自动定位</div>
  <div id="status" class="status">联网状态：准备连接天气模型</div>
 </section>
-
-<section class="card" style="margin-top:14px">
- <h2>🧠 多源融合 · 为什么今天值得拍</h2>
- <div id="sourceCards" class="sources"></div>
- <div class="notice" id="confidence">正在计算模型一致性、云层结构和大气条件置信度…</div>
- <div class="dual-analysis">
-  <div class="analysis-panel morning"><h3>🌅 朝霞 · 单独数据分析</h3><div id="morningAnalysis" class="analysis-grid"></div></div>
-  <div class="analysis-panel evening"><h3>🌇 晚霞 · 单独数据分析</h3><div id="eveningAnalysis" class="analysis-grid"></div></div>
- </div>
- <div class="notice" id="shootReason">正在生成今天值得拍的具体原因…</div>
+<section class="card weather7">
+ <div class="sectionhead"><div><h2>🌤️ 未来7天天气</h2><div class="sub">自动定位后显示 · 一行快速查看未来一周天气</div></div></div>
+ <div id="weather7" class="weather7-row"></div>
 </section>
+
+
 
 <div class="grid">
 <section class="card">
@@ -92,6 +87,21 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
  </div>
 </section>
 </div>
+
+<section class="card" style="margin-top:14px">
+ <h2>🌅 朝霞 / 🌇 晚霞 · 单独数据分析</h2>
+ <div id="sourceCards" class="sources"></div>
+ <div class="notice" id="confidence">正在计算模型一致性、云层结构和大气条件置信度…</div>
+ <div class="dual-analysis">
+  <div class="analysis-panel morning"><h3>🌅 朝霞 · 单独数据分析</h3><div id="morningAnalysis" class="analysis-grid"></div></div>
+  <div class="analysis-panel evening"><h3>🌇 晚霞 · 单独数据分析</h3><div id="eveningAnalysis" class="analysis-grid"></div></div>
+ </div>
+</section>
+
+<section class="card" style="margin-top:14px">
+ <h2>🧠 为什么今天值得拍</h2>
+ <div class="notice" id="shootReason">正在生成今天值得拍的具体原因…</div>
+</section>
 
 <section class="card" id="sunsetBotCard" style="margin-top:14px">
  <h2>🔥 SunsetBot 官方数据源</h2>
@@ -248,9 +258,42 @@ async function load(){
 }
 function setRange(n,el){S.range=n;document.querySelectorAll('.mini').forEach(x=>x.classList.remove('on'));el.classList.add('on');render();}
 function setStatus(x){document.getElementById('status').textContent='联网状态：'+x}
+
+function weatherIcon(cloud,precip){
+ if(Number(precip)>=60)return '🌧️';
+ if(Number(precip)>=30)return '🌦️';
+ if(Number(cloud)>=75)return '☁️';
+ if(Number(cloud)>=45)return '⛅';
+ return '☀️';
+}
+function renderWeather7(d){
+ const box=document.getElementById('weather7'); if(!box)return;
+ const h=d?.hourly;
+ if(!h?.time){box.innerHTML='<div class="sub">等待自动定位并获取天气数据…</div>';return}
+ const groups={};
+ h.time.forEach((t,i)=>{
+  const date=t.slice(0,10); if(!groups[date])groups[date]=[];
+  groups[date].push(i);
+ });
+ const dates=Object.keys(groups).slice(0,7);
+ box.innerHTML=dates.map((date,di)=>{
+  const ix=groups[date], temps=ix.map(i=>Number(h.temperature_2m?.[i])).filter(Number.isFinite);
+  const clouds=ix.map(i=>Number(h.cloud_cover?.[i])).filter(Number.isFinite);
+  const prec=ix.map(i=>Number(h.precipitation_probability?.[i])).filter(Number.isFinite);
+  const winds=ix.map(i=>Number(h.wind_speed_10m?.[i])).filter(Number.isFinite);
+  const min=temps.length?Math.round(Math.min(...temps)):'--', max=temps.length?Math.round(Math.max(...temps)):'--';
+  const cloud=clouds.length?Math.round(clouds.reduce((a,b)=>a+b,0)/clouds.length):0;
+  const rain=prec.length?Math.round(Math.max(...prec)):0;
+  const wind=winds.length?Math.round(winds.reduce((a,b)=>a+b,0)/winds.length):0;
+  const wd=di===0?'今天':new Date(date+'T12:00:00').toLocaleDateString('zh-CN',{weekday:'short'});
+  return `<div class="weather7-day"><b>${date.slice(5)} · ${wd}</b><small>${weatherIcon(cloud,rain)} 天气概况</small><div class="weather7-temp">${max}° / ${min}°</div><div class="weather7-info">🌧 降水 ${rain}%</div><div class="weather7-info">☁ 云量 ${cloud}%</div><div class="weather7-info">💨 风 ${wind} km/h</div></div>`;
+ }).join('');
+}
+
 function render(){
  let d=S.models[S.active]||S.models.ecmwf||S.models.gfs||S.models.kma;
  if(!d){setStatus('没有获得天气数据');return}
+ renderWeather7(d);
  let airArr=S.air?.hourly?.aerosol_optical_depth||[],air={aod:airArr};
  let days=S.active==='fusion'?fusionDayScores():dayScores(d,air);S.days=days.length; S.selected=Math.min(S.selected,days.length-1);
  const visible=days.slice(0,S.range||8);
@@ -433,7 +476,7 @@ function sunsetBotCityName(){
   // 自动定位时优先使用反向地理编码得到的城市；手动搜索时使用搜索到的城市名。
   const v=(S.sunsetCity||'').trim();
   if(v) return v;
-  const raw=document.getElementById('place')?.value.trim()||'';
+  const raw='';
   return raw;
 }
 function sunsetCityCandidates(){
@@ -441,7 +484,7 @@ function sunsetCityCandidates(){
   const push=v=>{v=(v||'').trim(); if(v&&!a.includes(v))a.push(v)};
   push(S.sunsetCity);
   push(S.place?.split(' · ')[0]);
-  push(document.getElementById('place')?.value);
+  
   // SunsetBot 对国内主要城市常用“山东省-济南”这类名称；同时保留“济南”作为兼容候选。
   const copy=[...a]; for(const v of copy){
     push(v.replace(/(特别行政区|自治州|地区|盟|市)$/,''));
@@ -539,7 +582,7 @@ async function choosePlace(i){
  const a=x.address||{};
  const title=x.name||a.road||a.village||a.hamlet||a.neighbourhood||'当前位置';
  const full=x.display_name||[a.province||a.state,a.city||a.town||a.county,a.district,a.suburb,a.village,a.hamlet,a.neighbourhood,a.road,a.house_number].filter(Boolean).join(' · ');
- document.getElementById('place').value=full||title;
+ 
  S.lat=Number(x.lat??x.latitude); S.lon=Number(x.lon??x.longitude);
  S.place=full||title; S.sunsetCity=a.city||a.town||a.municipality||a.county||a.village||a.suburb||title;
  document.getElementById('meta').innerHTML=`📍 ${S.place} · ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}`;
@@ -560,7 +603,6 @@ function locate(){
  setStatus('正在请求定位权限…');navigator.geolocation.getCurrentPosition(async p=>{S.lat=p.coords.latitude;S.lon=p.coords.longitude;S.place='当前位置';S.sunsetCity='';document.getElementById('meta').innerHTML=`📍 自动定位 · ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}`;try{const rr=await fetch('/api/reverse?lat='+encodeURIComponent(S.lat)+'&lon='+encodeURIComponent(S.lon),{cache:'no-store'});const rj=await rr.json();S.sunsetCity=rj.city||rj.name||'';if(S.sunsetCity){S.place=S.sunsetCity+(rj.admin?' · '+rj.admin:'');document.getElementById('meta').innerHTML=`📍 ${S.place} · ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}`}}catch(e){}await load()},e=>setStatus('定位失败：'+e.message),{enableHighAccuracy:true,timeout:15000,maximumAge:300000});
 }
 document.getElementById('meta').textContent=`📍 默认位置：山东济南 · ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}`;
-document.getElementById('place').value='山东济南';
 setTimeout(()=>load(),50);
 </script>
 </body></html>
