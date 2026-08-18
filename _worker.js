@@ -27,87 +27,49 @@ export default {
       } catch(e){return Response.json({status:"error",message:"reverse geocode failed",detail:String(e)},{status:502});}
     }
     if (url.pathname === "/api/sunsetbot") {
-      const city = (url.searchParams.get("city") || "").trim();
-      const event = url.searchParams.get("event") || "set_1";
+      const city = (url.searchParams.get("city") || "济南").trim();
+      const event = url.searchParams.get("event") || "set_2";
       const model = url.searchParams.get("model") || "GFS";
       if (!city) return Response.json({status:"error",message:"city required"},{status:400});
       if (!["rise_1","set_1","rise_2","set_2"].includes(event)) return Response.json({status:"error",message:"invalid event"},{status:400});
       if (!["GFS","EC"].includes(model)) return Response.json({status:"error",message:"invalid model"},{status:400});
 
-      // SunsetBot 当前公开 JSON：intend + query_city + event + model。
-      // 这里故意只做一次短超时请求；失败立即把真实 HTTP/返回格式交给前端，
-      // 不再多轮重试导致页面长时间停在“连接中”。
-      const targets = [
-        {base:"https://sunsetbot.top/", params:{intend:"select_city",query_city:city,event,model}},
-        {base:"https://sunsetbot.top/", params:{intend:"select_city",query_city:city,event}}
-      ];
-      const attempts=[];
-      for (const item of targets) {
-        const target=new URL(item.base);
-        for (const [k,v] of Object.entries(item.params)) target.searchParams.set(k,v);
-        const ctl=new AbortController();
-        const timer=setTimeout(()=>ctl.abort(),8000);
-        try {
-          const upstream=await fetch(target.toString(),{
-            method:"GET",
-            redirect:"follow",
-            signal:ctl.signal,
-            headers:{
-              "Accept":"application/json",
-              "User-Agent":"JianXia-SunsetBot-Proxy/1.0"
-            },
-            cf:{cacheTtl:0,cacheEverything:false}
-          });
-          const text=await upstream.text();
-          let data=null;
-          try { data=JSON.parse(text); } catch {}
-          const usable=!!data && data.status==="ok" && data.tb_quality!=null;
-          attempts.push({
-            status:upstream.status,
-            ok:upstream.ok,
-            contentType:upstream.headers.get("content-type")||"",
-            usable,
-            preview:data?null:text.slice(0,500)
-          });
-          if (usable) {
-            data._jianxia_model=model;
-            data._jianxia_event=event;
-            data._jianxia_source="SunsetBot official JSON";
-            return new Response(JSON.stringify(data),{
-              status:200,
-              headers:{
-                "Content-Type":"application/json; charset=utf-8",
-                "Cache-Control":"no-store, no-cache, must-revalidate",
-                "Pragma":"no-cache",
-                "Access-Control-Allow-Origin":"*"
-              }
-            });
-          }
-        } catch(e) {
-          attempts.push({
-            status:0,
-            ok:false,
-            error:e?.name==="AbortError"?"TIMEOUT":String(e)
-          });
-        } finally { clearTimeout(timer); }
-      }
-      const detail=attempts.map((a,i)=>{
-        const body=a.error || (a.preview?`返回内容：${a.preview}`:"");
-        return `${i+1}. HTTP ${a.status||"ERR"} ${a.ok?"OK":"FAIL"} ${a.contentType||""}${body?" | "+body:""}`;
-      }).join("\n");
-      return Response.json({
-        status:"error",
-        message:"SunsetBot 官方接口未返回有效 JSON",
-        detail,
-        attempts
-      },{
-        status:502,
-        headers:{
-          "Content-Type":"application/json; charset=utf-8",
-          "Cache-Control":"no-store",
-          "Access-Control-Allow-Origin":"*"
+      // SunsetBot 公开 JSON API 的已验证格式：
+      // https://sunsetbot.top/?intend=select_city&query_city=济南&event=set_2&model=GFS
+      // 不添加 query_id / event_date / times，避免把页面查询变成旧版兼容模式。
+      const target = new URL("https://sunsetbot.top/");
+      target.searchParams.set("intend","select_city");
+      target.searchParams.set("query_city",city.replace(/市$/,""));
+      target.searchParams.set("event",event);
+      target.searchParams.set("model",model);
+
+      const ctl = new AbortController();
+      const timer = setTimeout(()=>ctl.abort(),7000);
+      try {
+        const upstream = await fetch(target.toString(), {
+          method:"GET", redirect:"follow", signal:ctl.signal,
+          headers:{"Accept":"application/json","User-Agent":"Mozilla/5.0 (compatible; JianXia/1.0)"},
+          cf:{cacheTtl:0,cacheEverything:false}
+        });
+        const text = await upstream.text();
+        let data=null;
+        try { data=JSON.parse(text); } catch {}
+        if (!upstream.ok) {
+          return Response.json({status:"error",message:`SunsetBot HTTP ${upstream.status}`,detail:text.slice(0,300)},{status:502,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
         }
-      });
+        if (!data || data.status !== "ok") {
+          return Response.json({status:"error",message:"SunsetBot 返回状态不是 ok",detail:text.slice(0,500)},{status:502,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
+        }
+        if (data.tb_quality == null) {
+          return Response.json({status:"error",message:"SunsetBot 返回 JSON，但缺少 tb_quality",detail:text.slice(0,500)},{status:502,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
+        }
+        data._jianxia_model=model;
+        data._jianxia_event=event;
+        data._jianxia_source="SunsetBot official JSON";
+        return Response.json(data,{status:200,headers:{"Cache-Control":"no-store, no-cache, must-revalidate","Pragma":"no-cache","Access-Control-Allow-Origin":"*"}});
+      } catch(e) {
+        return Response.json({status:"error",message:e?.name==="AbortError"?"SunsetBot 请求超时（7秒）":"SunsetBot 连接失败",detail:String(e)},{status:504,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
+      } finally { clearTimeout(timer); }
     }
     return env.ASSETS.fetch(request);
   }
