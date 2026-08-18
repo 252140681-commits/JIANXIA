@@ -40,6 +40,19 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style id="jianxia-logo-alignment-fix">
+/* Logo与下方内容左侧对齐：轻微向右移动 */
+header .logo,
+.header .logo,
+.topbar .logo,
+.brand,
+.logo-brand,
+.logo-wrap {
+  margin-left: 10px !important;
+}
+</style>
+
 </head>
 <body>
 <div class="wrap">
@@ -112,7 +125,7 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
   <div class="kpi"><small>官方 AOD</small><strong id="sbAod">--</strong></div>
   <div class="kpi"><small>官方模型</small><strong id="sbModel">--</strong></div>
  </div>
- <div class="notice" id="sbStatus">正在尝试连接 sunsetbot.top …</div>
+ <div class="notice" id="sbStatus">正在连接 SunsetBot 官方 JSON …</div>
 </section>
 
 
@@ -495,57 +508,62 @@ function sunsetCityCandidates(){
 }
 
 async function sbRequest(city,event,model,attempt=0){
-  // SunsetBot 的 JSON 查询需要 query_id；使用每次请求唯一的随机 ID，避免被接口判定为旧查询。
-  const q={city,event,model,query_id:String(Math.floor(100000+Math.random()*900000)),cb:Date.now()}; const url='/api/sunsetbot?'+new URLSearchParams(q);
+  const q={city,event,model,debug:'1',cb:Date.now()};
+  const url='/api/sunsetbot?'+new URLSearchParams(q);
+  const ctl=new AbortController(); const timer=setTimeout(()=>ctl.abort(),12000);
   try{
-    const r=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-store'});
-    const j=await r.json().catch(()=>({status:'error',message:'非 JSON 响应'}));
-    if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null)) return j;
+    const r=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-store',signal:ctl.signal});
+    const j=await r.json().catch(()=>({status:'error',message:'Worker 返回非 JSON'}));
+    if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null || j.place_holder!=null)) return j;
     const msg=j?.message||('HTTP '+r.status);
-    throw new Error(msg);
+    const detail=j?.detail||'';
+    throw new Error(msg+(detail?'｜'+detail.slice(0,700):''));
   }catch(e){
-    if(attempt<3){await new Promise(ok=>setTimeout(ok,700*(attempt+1)));return sbRequest(city,event,model,attempt+1)}
-    throw e;
-  }
+    if(attempt<1){await new Promise(ok=>setTimeout(ok,500));return sbRequest(city,event,model,attempt+1)}
+    throw new Error(e?.name==='AbortError'?'Worker 请求超时（12秒）':(e?.message||String(e)));
+  }finally{clearTimeout(timer)}
 }
 async function fetchSunsetEvent(event){
   const candidates=sunsetCityCandidates();
   if(!candidates.length) throw new Error('没有可用于 SunsetBot 的城市名');
   const errors=[];
-  // 同一事件并行尝试 GFS/EC + 城市候选；拿到第一个有效结果即返回。
   for(const city of candidates){
-    const tries=await Promise.allSettled([sbRequest(city,event,'GFS'),sbRequest(city,event,'EC')]);
-    for(const t of tries) if(t.status==='fulfilled') return t.value;
-    for(const t of tries) if(t.status==='rejected') errors.push(city+': '+t.reason.message);
+    // 先 GFS，再 EC；避免两个上游请求同时卡住导致诊断信息难以阅读。
+    for(const model of ['GFS','EC']){
+      try{return await sbRequest(city,event,model)}catch(e){errors.push(city+' / '+model+': '+e.message)}
+    }
   }
-  throw new Error(errors.slice(-4).join('；')||'官方源暂无数据');
+  throw new Error(errors.slice(-6).join('；')||'官方源暂无数据');
 }
 function sbValue(s){
-  if(s==null)return null;
-  const m=String(s).match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):null;
+  if(s==null)return null; const m=String(s).match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):null;
 }
 function sbLevel(v){
   if(v==null)return '--'; if(v>2)return '🔥 世纪大烧'; if(v>=1)return '🔥 大烧'; if(v>=.5)return '🟠 中大烧'; if(v>=.2)return '🟡 中小烧'; return '偏弱';
 }
 async function loadSunsetBot(){
   const card=document.getElementById('sunsetBotCard'); card.style.display='block';
-  document.getElementById('sbSet').textContent='加载中…'; document.getElementById('sbRise').textContent='加载中…';
+  document.getElementById('sbSet').textContent='连接中…'; document.getElementById('sbRise').textContent='连接中…';
   document.getElementById('sbAod').textContent='--'; document.getElementById('sbModel').textContent='GFS / EC';
-  document.getElementById('sbStatus').textContent='正在自动匹配城市，并分别请求官方晚霞、朝霞数据（失败会自动重试并切换 GFS / EC）…';
-  const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_2'),fetchSunsetEvent('rise_2')]);
+  document.getElementById('sbStatus').textContent='正在连接 SunsetBot 官方 JSON，并进行接口诊断…';
+  // 今天：set_1 / rise_1。若官方没有今天结果，错误信息会明确显示，不再无限“加载中”。
+  const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_1'),fetchSunsetEvent('rise_1')]);
   const set=setRes.status==='fulfilled'?setRes.value:null, rise=riseRes.status==='fulfilled'?riseRes.value:null;
   const sv=sbValue(set?.tb_quality), rv=sbValue(rise?.tb_quality), sa=sbValue(set?.tb_aod), ra=sbValue(rise?.tb_aod);
   document.getElementById('sbSet').textContent=sv==null?(setRes.status==='rejected'?'请求失败':'暂无'):`${sv.toFixed(3)} · ${sbLevel(sv)}`;
   document.getElementById('sbRise').textContent=rv==null?(riseRes.status==='rejected'?'请求失败':'暂无'):`${rv.toFixed(3)} · ${sbLevel(rv)}`;
   const bestA=sv!=null&&rv!=null?(sv>=rv?sa:ra):(sa??ra);
   document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
-  const models=[set?.['_jianxia_model'],rise?.['_jianxia_model']].filter(Boolean); document.getElementById('sbModel').textContent=models.length?[...new Set(models)].join(' / '):'官方 GFS / EC';
+  const models=[set?.['_jianxia_model'],rise?.['_jianxia_model']].filter(Boolean);
+  document.getElementById('sbModel').textContent=models.length?[...new Set(models)].join(' / '):'GFS / EC';
   if(set||rise){
     const city=set?.display_city_name||rise?.display_city_name||sunsetBotCityName()||'当前位置';
     const parts=[]; if(set)parts.push('晚霞 ✓');else parts.push('晚霞暂无'); if(rise)parts.push('朝霞 ✓');else parts.push('朝霞暂无');
-    document.getElementById('sbStatus').textContent=`SunsetBot 已连接 · ${city} · ${parts.join(' · ')}。官方数据按模型时次更新；见霞已自动重试并在 GFS / EC 间切换。`;
+    document.getElementById('sbStatus').textContent=`SunsetBot 官方数据已连接 · ${city} · ${parts.join(' · ')} · 非见霞重新计算。`;
   }else{
-    const e1=setRes.status==='rejected'?setRes.reason?.message:''; const e2=riseRes.status==='rejected'?riseRes.reason?.message:''; document.getElementById('sbStatus').textContent='SunsetBot 本次没有返回有效数据。见霞已自动重试 GFS/EC，并已禁用 Cloudflare 对该接口的缓存。'+(e1||e2?` 原因：${[e1,e2].filter(Boolean).join('；')}`:'');
+    const e1=setRes.status==='rejected'?setRes.reason?.message:''; const e2=riseRes.status==='rejected'?riseRes.reason?.message:'';
+    const err=[e1,e2].filter(Boolean).join('；');
+    document.getElementById('sbStatus').textContent='SunsetBot 官方 JSON 本次未返回有效数据。'+(err?` 诊断：${err}`:' 请稍后刷新重试。');
   }
 }
 let suggestionTimer=null;
