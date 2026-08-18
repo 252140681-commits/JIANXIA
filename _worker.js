@@ -60,6 +60,8 @@ export default {
             data._jianxia_source="SunsetBot official JSON";
             data._jianxia_model=model;
             data._jianxia_event=event;
+            data._jianxia_fetched_at=new Date().toISOString();
+            data._jianxia_batch=data.display_times_str || null;
             return new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store, no-cache, must-revalidate","Pragma":"no-cache","Access-Control-Allow-Origin":"*"}});
           }
           lastError=`${base} HTTP ${upstream.status}${data?.message?" · "+data.message:" · 返回无有效 JSON 数据"}`;

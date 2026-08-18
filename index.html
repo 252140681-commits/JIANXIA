@@ -37,6 +37,8 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 .sectionhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.tinyselect{display:flex;gap:4px;align-items:center;color:#7890a7;font-size:10px}.mini{border:1px solid #29425a;background:#091727;color:#8fa5ba;border-radius:8px;padding:6px 8px;cursor:pointer}.mini.on{border-color:#ff7b63;color:#fff}.daily-list{display:grid;gap:7px}.daily-row{display:grid;grid-template-columns:78px 1fr 1fr 86px;gap:8px;align-items:center;background:#091727;border:1px solid #1d344c;border-radius:12px;padding:9px;cursor:pointer}.daily-row:hover,.daily-row.sel{border-color:#ff8066;background:#0d1c2c}.datebox b{display:block;font-size:13px}.datebox small{color:#8198ae;font-size:10px}.event{border-radius:10px;padding:9px 10px;border:1px solid #1d344c;background:#0b1828}.event .ehead{display:flex;justify-content:space-between;gap:6px}.event .ename{font-size:10px;color:#9fb4c8}.event .etime{font-size:9px;color:#6f879e}.event .escore{font-size:22px;font-weight:900;line-height:1.1}.event .bar{margin-top:5px}.event.strong{background:linear-gradient(135deg,#251b20,#0b1828);border-color:#65404a}.event.strong .escore{color:#ff765f}.event.good .escore{color:#ffc66c}.event.weak .escore{color:#8095aa}.daybest{text-align:center}.daybest b{display:block;font-size:12px}.daybest small{color:#8198ae;font-size:9px}.rangehint{font-size:10px;color:#8198ae}@media(max-width:700px){.daily-row{grid-template-columns:62px 1fr 1fr;gap:5px}.daybest{grid-column:1/-1;text-align:left;padding:2px 5px}.event{padding:8px}.event .escore{font-size:19px}.sectionhead{align-items:center}.tinyselect{flex-shrink:0}}
 .sunset-inline{margin-left:auto;border:1px solid #344d64;background:#0b1929;padding:7px 10px;border-radius:9px}.sunset-inline strong{color:#ff9b6e;margin:0 4px}.sunset-inline b{color:#ffc66c}
 .dual-analysis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;align-items:stretch}.analysis-panel{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px;background:rgba(255,255,255,.025);min-width:0;height:100%;display:flex;flex-direction:column}.analysis-panel h3{margin:0 0 10px;font-size:15px}.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.analysis-item{padding:8px;border-radius:10px;background:rgba(255,255,255,.035);display:flex;flex-direction:column;gap:3px}.analysis-item span{font-size:11px;opacity:.65}.analysis-item b{font-size:13px}.analysis-desc{grid-column:1/-1;font-size:12px;line-height:1.6;opacity:.82;padding:4px 2px}@media(max-width:700px){.wrap{width:100%;max-width:none;padding:10px}.top{width:100%;gap:8px}.hero,.card{width:100%;min-width:0}.row{width:100%}.searchbox{min-width:0;width:100%}.searchbox .input{min-width:0;width:100%}.btn{max-width:100%}.dual-analysis{grid-template-columns:1fr}.analysis-panel{height:auto;min-height:0}.analysis-grid{grid-template-columns:1fr 1fr}}
+
+.sb-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}.sb-controls button{border:1px solid #28425d;background:#0b1a2b;color:#b8cad9;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12px;cursor:pointer}.sb-controls button.on{background:#f28b32;color:#fff;border-color:#f28b32;box-shadow:0 4px 12px rgba(242,139,50,.22)}.sb-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.sb-meta span{font-size:10px;color:#7f96aa;background:#091727;border:1px solid #1d344c;border-radius:7px;padding:5px 8px}.sb-diff{font-size:11px;color:#8da4b8;margin-top:8px;line-height:1.5}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -119,12 +121,20 @@ header .logo,
 <section class="card" id="sunsetBotCard" style="margin-top:14px">
  <h2>🔥 SunsetBot 官方数据源</h2>
  <div class="sub">这里不是重新计算 SunsetBot 的分数，而是直接调用其公开 JSON 查询接口，保留 SunsetBot 原始鲜艳度与 AOD。根据其公开页面，它的核心数据来自 NCEP-GFS / ECMWF 云况 + CAMS 气溶胶，并考虑持续时间、云量、云底高度、云层照明遮挡与 AOD 等因素。 </div>
+ <div class="sb-controls" aria-label="SunsetBot 数据选择">
+  <button id="sbDay1" class="on" onclick="setSbDay(1)">今天</button>
+  <button id="sbDay2" onclick="setSbDay(2)">明天</button>
+  <button id="sbGfs" class="on" onclick="setSbModel('GFS')">GFS</button>
+  <button id="sbEc" onclick="setSbModel('EC')">EC</button>
+ </div>
  <div class="kpis" style="margin-top:12px">
   <div class="kpi"><small>官方晚霞</small><strong id="sbSet">加载中…</strong></div>
   <div class="kpi"><small>官方朝霞</small><strong id="sbRise">加载中…</strong></div>
   <div class="kpi"><small>官方 AOD</small><strong id="sbAod">--</strong></div>
-  <div class="kpi"><small>官方模型</small><strong id="sbModel">--</strong></div>
+  <div class="kpi"><small>官方模型</small><strong id="sbModel">GFS</strong></div>
  </div>
+ <div class="sb-meta"><span id="sbEventTime">事件时间：--</span><span id="sbUpdateTime">本次查询：--</span></div>
+ <div class="sb-diff" id="sbDiff">提示：SunsetBot 官方鲜艳度不是百分制，不能直接与“见霞”0–100分比较；这里显示的是官方原始值。GFS/EC、今天/明天都可单独切换。</div>
  <div class="notice" id="sbStatus">正在初始化 SunsetBot 官方数据源 …</div>
 </section>
 
@@ -167,7 +177,7 @@ header .logo,
 </div>
 
 <script>
-const S={sbLoading:false,lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0};
+const S={sbLoading:false,lat:36.6512,lon:117.1201,tz:'auto',place:'山东济南',sunsetCity:'山东省-济南',models:{},active:'fusion',days:8,range:8,selected:0,sbModelChoice:'GFS',sbDay:1,sbLoading:false};
 const api=(base,p)=>base+'?'+new URLSearchParams(p);
 const weatherVars='cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,precipitation_probability,wind_speed_10m,wind_direction_10m,temperature_2m,relative_humidity_2m';
 function avg(a){a=a.filter(x=>Number.isFinite(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
@@ -513,58 +523,57 @@ function sunsetCityCandidates(){
 
 async function sbRequest(city,event,model){
   const q={city,event,model,cb:Date.now()};
-  const ac=new AbortController();
-  const timer=setTimeout(()=>ac.abort(),12000);
+  const ac=new AbortController(); const timer=setTimeout(()=>ac.abort(),12000);
   try{
     const r=await fetch('/api/sunsetbot?'+new URLSearchParams(q),{headers:{'Accept':'application/json'},cache:'no-store',signal:ac.signal});
     const j=await r.json().catch(()=>({status:'error',message:'返回不是 JSON'}));
     if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null)) return j;
     throw new Error(j?.detail || j?.message || ('HTTP '+r.status));
-  }catch(e){
-    throw new Error(e?.name==='AbortError'?'见霞→SunsetBot 请求超过 12 秒':(e?.message||String(e)));
-  }finally{clearTimeout(timer)}
+  }catch(e){throw new Error(e?.name==='AbortError'?'见霞→SunsetBot 请求超过 12 秒':(e?.message||String(e)))}
+  finally{clearTimeout(timer)}
 }
-async function fetchSunsetEvent(event){
-  const candidates=sunsetCityCandidates();
-  if(!candidates.length) throw new Error('没有可用于 SunsetBot 的城市名');
+function sunsetCityCandidates(){
+  const a=[]; const push=v=>{v=(v||'').trim();if(v&&!a.includes(v))a.push(v)};
+  push(S.sunsetCity); push(S.place?.split(' · ')[0]);
+  const copy=[...a]; for(const v of copy){push(v.replace(/(特别行政区|自治州|地区|盟|市)$/,''));push(v.replace(/市$/,''));if(v==='济南'||v==='济南市'||v==='山东济南')push('山东省-济南')}
+  return a;
+}
+async function fetchSunsetEvent(event,model){
+  const candidates=sunsetCityCandidates(); if(!candidates.length)throw new Error('没有可用于 SunsetBot 的城市名');
   const errors=[];
-  for(const city of candidates){
-    // 先 GFS，失败后再 EC；不再进行无限/多轮重试。
-    for(const model of ['GFS','EC']){
-      try{return await sbRequest(city,event,model)}
-      catch(e){errors.push(city+' / '+model+': '+e.message)}
-    }
-  }
-  throw new Error(errors.slice(-4).join('；')||'官方源暂无数据');
+  for(const city of candidates){try{return await sbRequest(city,event,model)}catch(e){errors.push(city+' / '+model+': '+e.message)}}
+  throw new Error(errors.slice(-3).join('；')||'官方源暂无数据');
 }
-function sbValue(s){
-  if(s==null)return null;
-  const m=String(s).match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):null;
+function sbValue(s){if(s==null)return null;const m=String(s).match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):null}
+function sbLevel(v){if(v==null)return '--';if(v>2)return '🔥 世纪大烧';if(v>=1)return '🔥 大烧';if(v>=.5)return '🟠 中大烧';if(v>=.2)return '🟡 中小烧';return '偏弱'}
+function setSbDay(day){S.sbDay=day;document.getElementById('sbDay1')?.classList.toggle('on',day===1);document.getElementById('sbDay2')?.classList.toggle('on',day===2);loadSunsetBot(true)}
+function setSbModel(model){S.sbModelChoice=model;document.getElementById('sbGfs')?.classList.toggle('on',model==='GFS');document.getElementById('sbEc')?.classList.toggle('on',model==='EC');loadSunsetBot(true)}
+function fmtEventTime(v){
+  if(!v)return '--'; const str=String(v); const m=str.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2}).*?(\d{1,2}):(\d{2})/); if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')} ${String(m[4]).padStart(2,'0')}:${m[5]}`; return str;
 }
-function sbLevel(v){
-  if(v==null)return '--'; if(v>2)return '🔥 世纪大烧'; if(v>=1)return '🔥 大烧'; if(v>=.5)return '🟠 中大烧'; if(v>=.2)return '🟡 中小烧'; return '偏弱';
-}
-async function loadSunsetBot(){
-  if(S.sbLoading) return;
-  S.sbLoading=true;
-  const card=document.getElementById('sunsetBotCard'); card.style.display='block';
-  document.getElementById('sbSet').textContent='加载中…'; document.getElementById('sbRise').textContent='加载中…';
-  document.getElementById('sbAod').textContent='--'; document.getElementById('sbModel').textContent='GFS / EC';
-  document.getElementById('sbStatus').textContent='正在自动匹配城市，并分别请求官方晚霞、朝霞数据（失败会自动重试并切换 GFS / EC）…';
-  const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_2'),fetchSunsetEvent('rise_2')]);
-  const set=setRes.status==='fulfilled'?setRes.value:null, rise=riseRes.status==='fulfilled'?riseRes.value:null;
-  const sv=sbValue(set?.tb_quality), rv=sbValue(rise?.tb_quality), sa=sbValue(set?.tb_aod), ra=sbValue(rise?.tb_aod);
-  document.getElementById('sbSet').textContent=sv==null?(setRes.status==='rejected'?'请求失败':'暂无'):`${sv.toFixed(3)} · ${sbLevel(sv)}`;
-  document.getElementById('sbRise').textContent=rv==null?(riseRes.status==='rejected'?'请求失败':'暂无'):`${rv.toFixed(3)} · ${sbLevel(rv)}`;
-  const bestA=sv!=null&&rv!=null?(sv>=rv?sa:ra):(sa??ra);
-  document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
-  const models=[set?.['_jianxia_model'],rise?.['_jianxia_model']].filter(Boolean); document.getElementById('sbModel').textContent=models.length?[...new Set(models)].join(' / '):'官方 GFS / EC';
+async function loadSunsetBot(force=false){
+  if(S.sbLoading&&!force)return; S.sbLoading=true;
+  const card=document.getElementById('sunsetBotCard');card.style.display='block';
+  const model=S.sbModelChoice||'GFS', day=S.sbDay||1;
+  document.getElementById('sbSet').textContent='加载中…';document.getElementById('sbRise').textContent='加载中…';document.getElementById('sbAod').textContent='--';document.getElementById('sbModel').textContent=model;
+  document.getElementById('sbEventTime').textContent='事件时间：--';document.getElementById('sbUpdateTime').textContent='本次查询：'+new Date().toLocaleString('zh-CN',{hour12:false});
+  document.getElementById('sbStatus').textContent=`正在读取 SunsetBot 官方 ${model} 数据 · ${day===1?'今天':'明天'}…`;
+  const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_'+day,model),fetchSunsetEvent('rise_'+day,model)]);
+  const set=setRes.status==='fulfilled'?setRes.value:null,rise=riseRes.status==='fulfilled'?riseRes.value:null;
+  const sv=sbValue(set?.tb_quality),rv=sbValue(rise?.tb_quality),sa=sbValue(set?.tb_aod),ra=sbValue(rise?.tb_aod);
+  document.getElementById('sbSet').textContent=sv==null?(set?'暂无':'请求失败'):`${sv.toFixed(3)} · ${sbLevel(sv)}`;
+  document.getElementById('sbRise').textContent=rv==null?(rise?'暂无':'请求失败'):`${rv.toFixed(3)} · ${sbLevel(rv)}`;
+  const bestA=sv!=null&&rv!=null?(sv>=rv?sa:ra):(sa??ra);document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
+  const eventTime=fmtEventTime(set?.tb_event_time||rise?.tb_event_time);document.getElementById('sbEventTime').textContent='事件时间：'+eventTime;
+  const batch=set?.display_times_str||rise?.display_times_str||set?._jianxia_batch||rise?._jianxia_batch||'--';
+  document.getElementById('sbUpdateTime').textContent='数据批次：'+batch+' · 查询：'+new Date().toLocaleString('zh-CN',{hour12:false});
   if(set||rise){
-    const city=set?.display_city_name||rise?.display_city_name||sunsetBotCityName()||'当前位置';
-    const parts=[]; if(set)parts.push('晚霞 ✓');else parts.push('晚霞暂无'); if(rise)parts.push('朝霞 ✓');else parts.push('朝霞暂无');
-    document.getElementById('sbStatus').textContent=`SunsetBot 已连接 · ${city} · ${parts.join(' · ')}。官方数据按模型时次更新；见霞已自动重试并在 GFS / EC 间切换。`;
+    const city=set?.display_city_name||rise?.display_city_name||sunsetCityCandidates()[0]||'当前位置';
+    const parts=[];if(set)parts.push('晚霞 ✓');else parts.push('晚霞暂无');if(rise)parts.push('朝霞 ✓');else parts.push('朝霞暂无');
+    document.getElementById('sbStatus').textContent=`SunsetBot 官方已连接 · ${city} · ${model} · ${day===1?'今天':'明天'} · ${parts.join(' · ')}`;
   }else{
-    const e1=setRes.status==='rejected'?setRes.reason?.message:''; const e2=riseRes.status==='rejected'?riseRes.reason?.message:''; document.getElementById('sbStatus').textContent='SunsetBot 本次没有返回有效数据。见霞已自动重试 GFS/EC，并已禁用 Cloudflare 对该接口的缓存。'+(e1||e2?` 原因：${[e1,e2].filter(Boolean).join('；')}`:'');
+    const e1=setRes.status==='rejected'?setRes.reason?.message:'';const e2=riseRes.status==='rejected'?riseRes.reason?.message:'';
+    document.getElementById('sbStatus').textContent='SunsetBot 官方数据请求失败。'+[e1,e2].filter(Boolean).join('；');
   }
   S.sbLoading=false;
 }
