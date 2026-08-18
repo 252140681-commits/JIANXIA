@@ -507,29 +507,29 @@ function sunsetCityCandidates(){
   return a;
 }
 
-async function sbRequest(city,event,model,attempt=0){
-  // SunsetBot 的 JSON 查询需要 query_id；使用每次请求唯一的随机 ID，避免被接口判定为旧查询。
-  const q={city,event,model,query_id:String(Math.floor(100000+Math.random()*900000)),cb:Date.now()}; const url='/api/sunsetbot?'+new URLSearchParams(q);
+async function sbRequest(city,event,model){
+  const q={city,event,model,cb:Date.now()};
+  const ac=new AbortController();
+  const timer=setTimeout(()=>ac.abort(),12000);
   try{
-    const r=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-store'});
-    const j=await r.json().catch(()=>({status:'error',message:'非 JSON 响应'}));
+    const r=await fetch('/api/sunsetbot?'+new URLSearchParams(q),{headers:{'Accept':'application/json'},cache:'no-store',signal:ac.signal});
+    const j=await r.json().catch(()=>({status:'error',message:'返回不是 JSON'}));
     if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null)) return j;
-    const msg=j?.message||('HTTP '+r.status);
-    throw new Error(msg);
+    throw new Error(j?.detail || j?.message || ('HTTP '+r.status));
   }catch(e){
-    if(attempt<3){await new Promise(ok=>setTimeout(ok,700*(attempt+1)));return sbRequest(city,event,model,attempt+1)}
-    throw e;
-  }
+    throw new Error(e?.name==='AbortError'?'见霞→SunsetBot 请求超过 12 秒':(e?.message||String(e)));
+  }finally{clearTimeout(timer)}
 }
 async function fetchSunsetEvent(event){
   const candidates=sunsetCityCandidates();
   if(!candidates.length) throw new Error('没有可用于 SunsetBot 的城市名');
   const errors=[];
-  // 同一事件并行尝试 GFS/EC + 城市候选；拿到第一个有效结果即返回。
   for(const city of candidates){
-    const tries=await Promise.allSettled([sbRequest(city,event,'GFS'),sbRequest(city,event,'EC')]);
-    for(const t of tries) if(t.status==='fulfilled') return t.value;
-    for(const t of tries) if(t.status==='rejected') errors.push(city+': '+t.reason.message);
+    // 先 GFS，失败后再 EC；不再进行无限/多轮重试。
+    for(const model of ['GFS','EC']){
+      try{return await sbRequest(city,event,model)}
+      catch(e){errors.push(city+' / '+model+': '+e.message)}
+    }
   }
   throw new Error(errors.slice(-4).join('；')||'官方源暂无数据');
 }

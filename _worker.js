@@ -27,38 +27,47 @@ export default {
       } catch(e){return Response.json({status:"error",message:"reverse geocode failed",detail:String(e)},{status:502});}
     }
     if (url.pathname === "/api/sunsetbot") {
-      const city = (url.searchParams.get("city") || "").trim();
-      const event = url.searchParams.get("event") || "set_2";
-      const model = url.searchParams.get("model") || "GFS";
-      if (!city) return Response.json({status:"error",message:"city required"},{status:400});
-      if (!["rise_1","set_1","rise_2","set_2"].includes(event)) return Response.json({status:"error",message:"invalid event"},{status:400});
-      if (!["GFS","EC"].includes(model)) return Response.json({status:"error",message:"invalid model"},{status:400});
+      const city=(url.searchParams.get("city")||"").trim();
+      const event=url.searchParams.get("event")||"set_2";
+      const model=url.searchParams.get("model")||"GFS";
+      if(!city) return Response.json({status:"error",message:"city required"},{status:400});
+      if(!["rise_1","set_1","rise_2","set_2"].includes(event)) return Response.json({status:"error",message:"invalid event"},{status:400});
+      if(!["GFS","EC"].includes(model)) return Response.json({status:"error",message:"invalid model"},{status:400});
 
-      // 使用 SunsetBot 公开 JSON API 的最小官方参数集。
-      // 不附加 query_id / event_date / times，避免部分时次被判定为“官方模型暂无”。
-      const domains=["https://www.sunsetbot.top/","https://sunsetbot.top/"];
+      // SunsetBot：只发送公开查询所需的四个参数。每个上游请求严格限制在 8 秒内，
+      // 防止 Cloudflare/浏览器永久停留在“正在初始化/连接中”。
+      const bases=["https://sunsetbot.top/","https://www.sunsetbot.top/"];
       let lastError="";
-      for(const base of domains){
+      for(const base of bases){
         const target=new URL(base);
         target.searchParams.set("intend","select_city");
         target.searchParams.set("query_city",city);
         target.searchParams.set("event",event);
         target.searchParams.set("model",model);
-        // SunsetBot 当前公开 JSON 接口要求 query_id；每次请求生成新的 6 位 ID。
-        target.searchParams.set("query_id",String(Math.floor(100000 + Math.random()*900000)));
+        const ac=new AbortController();
+        const timer=setTimeout(()=>ac.abort(),8000);
         try{
-          const upstream=await fetch(target.toString(),{method:"GET",redirect:"follow",headers:{"Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0 (compatible; JianXia/2.1)","Referer":"https://www.sunsetbot.top/"},cf:{cacheTtl:0,cacheEverything:false}});
+          const upstream=await fetch(target.toString(),{
+            method:"GET", redirect:"follow", signal:ac.signal,
+            headers:{"Accept":"application/json,text/plain,*/*","User-Agent":"Mozilla/5.0 (compatible; JianXia/2.3)","Referer":"https://sunsetbot.top/"},
+            cf:{cacheTtl:0,cacheEverything:false}
+          });
           const text=await upstream.text();
-          let data; try{data=JSON.parse(text)}catch{data={status:"error",message:"SunsetBot 返回非 JSON 数据",http_status:upstream.status,preview:text.slice(0,500)}}
+          let data;
+          try{data=JSON.parse(text)}catch{data=null}
           const usable=!!data && (data.tb_quality!=null || data.tb_event_time!=null || data.display_event_name_cn!=null);
           if(upstream.ok && usable){
-            data._jianxia_model=model; data._jianxia_event=event;
+            data._jianxia_source="SunsetBot official JSON";
+            data._jianxia_model=model;
+            data._jianxia_event=event;
             return new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store, no-cache, must-revalidate","Pragma":"no-cache","Access-Control-Allow-Origin":"*"}});
           }
-          lastError=`${base} HTTP ${upstream.status} ${data?.message||"无有效数据"}`;
-        }catch(e){lastError=String(e)}
+          lastError=`${base} HTTP ${upstream.status}${data?.message?" · "+data.message:" · 返回无有效 JSON 数据"}`;
+        }catch(e){
+          lastError=e?.name==="AbortError"?`${base} 请求超时（8秒）`:`${base} 连接失败：${String(e)}`;
+        }finally{clearTimeout(timer)}
       }
-      return Response.json({status:"error",message:"SunsetBot 官方接口暂无可用结果",detail:lastError},{status:502,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
+      return Response.json({status:"error",message:"SunsetBot 官方 JSON 请求失败",detail:lastError},{status:502,headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
     }
     const asset = await env.ASSETS.fetch(request);
     if (url.pathname === "/" || url.pathname === "/index.html") {
