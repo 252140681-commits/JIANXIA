@@ -125,7 +125,7 @@ header .logo,
   <div class="kpi"><small>官方 AOD</small><strong id="sbAod">--</strong></div>
   <div class="kpi"><small>官方模型</small><strong id="sbModel">--</strong></div>
  </div>
- <div class="notice" id="sbStatus">正在连接 SunsetBot 官方 JSON …</div>
+ <div class="notice" id="sbStatus">等待 SunsetBot 官方 JSON 请求…</div>
 </section>
 
 
@@ -486,41 +486,33 @@ function switchModel(n,el){
 }
 
 function sunsetBotCityName(){
-  // 自动定位时优先使用反向地理编码得到的城市；手动搜索时使用搜索到的城市名。
   const v=(S.sunsetCity||'').trim();
   if(v) return v;
-  const raw='';
-  return raw;
+  return '';
 }
 function sunsetCityCandidates(){
-  const a=[];
-  const push=v=>{v=(v||'').trim(); if(v&&!a.includes(v))a.push(v)};
-  push(S.sunsetCity);
-  push(S.place?.split(' · ')[0]);
-  
-  // SunsetBot 对国内主要城市常用“山东省-济南”这类名称；同时保留“济南”作为兼容候选。
-  const copy=[...a]; for(const v of copy){
-    push(v.replace(/(特别行政区|自治州|地区|盟|市)$/,''));
-    push(v.replace(/市$/,''));
-    if(v==='济南'||v==='济南市'||v==='山东济南') push('山东省-济南');
-  }
+  const a=[]; const push=v=>{v=(v||'').trim(); if(v&&!a.includes(v))a.push(v)};
+  // SunsetBot 对中国城市的公开 JSON 接口直接接受城市名；优先使用纯城市名。
+  const raw=(S.sunsetCity||S.place||'').trim();
+  const clean=raw.replace(/^山东省[-·\s]*/,'').replace(/市$/,'').trim();
+  push(clean);
+  push(raw.replace(/市$/,'').trim());
+  if(clean==='济南') push('济南');
   return a;
 }
-
-async function sbRequest(city,event,model,attempt=0){
-  const q={city,event,model,debug:'1',cb:Date.now()};
-  const url='/api/sunsetbot?'+new URLSearchParams(q);
-  const ctl=new AbortController(); const timer=setTimeout(()=>ctl.abort(),12000);
+async function sbRequest(city,event,model){
+  const url='/api/sunsetbot?'+new URLSearchParams({city,event,model,cb:String(Date.now())});
+  const ctl=new AbortController();
+  const timer=setTimeout(()=>ctl.abort(),15000);
   try{
     const r=await fetch(url,{headers:{'Accept':'application/json'},cache:'no-store',signal:ctl.signal});
-    const j=await r.json().catch(()=>({status:'error',message:'Worker 返回非 JSON'}));
-    if(r.ok && j && (j.tb_quality!=null || j.tb_event_time!=null || j.display_event_name_cn!=null || j.place_holder!=null)) return j;
+    const j=await r.json().catch(()=>null);
+    if(r.ok && j && j.status==='ok' && j.tb_quality!=null) return j;
     const msg=j?.message||('HTTP '+r.status);
     const detail=j?.detail||'';
-    throw new Error(msg+(detail?'｜'+detail.slice(0,700):''));
+    throw new Error(msg+(detail?'｜'+detail.slice(0,900):''));
   }catch(e){
-    if(attempt<1){await new Promise(ok=>setTimeout(ok,500));return sbRequest(city,event,model,attempt+1)}
-    throw new Error(e?.name==='AbortError'?'Worker 请求超时（12秒）':(e?.message||String(e)));
+    throw new Error(e?.name==='AbortError'?'请求超时（15秒）':(e?.message||String(e)));
   }finally{clearTimeout(timer)}
 }
 async function fetchSunsetEvent(event){
@@ -528,43 +520,67 @@ async function fetchSunsetEvent(event){
   if(!candidates.length) throw new Error('没有可用于 SunsetBot 的城市名');
   const errors=[];
   for(const city of candidates){
-    // 先 GFS，再 EC；避免两个上游请求同时卡住导致诊断信息难以阅读。
+    // 只尝试 GFS → EC，各一次；避免重复请求导致无限等待。
     for(const model of ['GFS','EC']){
-      try{return await sbRequest(city,event,model)}catch(e){errors.push(city+' / '+model+': '+e.message)}
+      try{return await sbRequest(city,event,model)}catch(e){errors.push(`${city}/${model}: ${e.message}`)}
     }
   }
-  throw new Error(errors.slice(-6).join('；')||'官方源暂无数据');
+  throw new Error(errors.join('；')||'官方源暂无数据');
 }
 function sbValue(s){
-  if(s==null)return null; const m=String(s).match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):null;
+  if(s==null)return null;
+  const m=String(s).match(/-?\d+(?:\.\d+)?/);
+  return m?Number(m[0]):null;
 }
 function sbLevel(v){
-  if(v==null)return '--'; if(v>2)return '🔥 世纪大烧'; if(v>=1)return '🔥 大烧'; if(v>=.5)return '🟠 中大烧'; if(v>=.2)return '🟡 中小烧'; return '偏弱';
+  if(v==null)return '--';
+  if(v>2)return '🔥 世纪大烧';
+  if(v>=1)return '🔥 大烧';
+  if(v>=.5)return '🟠 中大烧';
+  if(v>=.2)return '🟡 中小烧';
+  return '偏弱';
 }
+let sunsetBotPromise=null;
 async function loadSunsetBot(){
-  const card=document.getElementById('sunsetBotCard'); card.style.display='block';
-  document.getElementById('sbSet').textContent='连接中…'; document.getElementById('sbRise').textContent='连接中…';
-  document.getElementById('sbAod').textContent='--'; document.getElementById('sbModel').textContent='GFS / EC';
-  document.getElementById('sbStatus').textContent='正在连接 SunsetBot 官方 JSON，并进行接口诊断…';
-  // 今天：set_1 / rise_1。若官方没有今天结果，错误信息会明确显示，不再无限“加载中”。
-  const [setRes,riseRes]=await Promise.allSettled([fetchSunsetEvent('set_1'),fetchSunsetEvent('rise_1')]);
-  const set=setRes.status==='fulfilled'?setRes.value:null, rise=riseRes.status==='fulfilled'?riseRes.value:null;
-  const sv=sbValue(set?.tb_quality), rv=sbValue(rise?.tb_quality), sa=sbValue(set?.tb_aod), ra=sbValue(rise?.tb_aod);
-  document.getElementById('sbSet').textContent=sv==null?(setRes.status==='rejected'?'请求失败':'暂无'):`${sv.toFixed(3)} · ${sbLevel(sv)}`;
-  document.getElementById('sbRise').textContent=rv==null?(riseRes.status==='rejected'?'请求失败':'暂无'):`${rv.toFixed(3)} · ${sbLevel(rv)}`;
-  const bestA=sv!=null&&rv!=null?(sv>=rv?sa:ra):(sa??ra);
-  document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
-  const models=[set?.['_jianxia_model'],rise?.['_jianxia_model']].filter(Boolean);
-  document.getElementById('sbModel').textContent=models.length?[...new Set(models)].join(' / '):'GFS / EC';
-  if(set||rise){
-    const city=set?.display_city_name||rise?.display_city_name||sunsetBotCityName()||'当前位置';
-    const parts=[]; if(set)parts.push('晚霞 ✓');else parts.push('晚霞暂无'); if(rise)parts.push('朝霞 ✓');else parts.push('朝霞暂无');
-    document.getElementById('sbStatus').textContent=`SunsetBot 官方数据已连接 · ${city} · ${parts.join(' · ')} · 非见霞重新计算。`;
-  }else{
-    const e1=setRes.status==='rejected'?setRes.reason?.message:''; const e2=riseRes.status==='rejected'?riseRes.reason?.message:'';
-    const err=[e1,e2].filter(Boolean).join('；');
-    document.getElementById('sbStatus').textContent='SunsetBot 官方 JSON 本次未返回有效数据。'+(err?` 诊断：${err}`:' 请稍后刷新重试。');
-  }
+  if(sunsetBotPromise) return sunsetBotPromise;
+  sunsetBotPromise=(async()=>{
+    const card=document.getElementById('sunsetBotCard');
+    card.style.display='block';
+    document.getElementById('sbSet').textContent='请求中…';
+    document.getElementById('sbRise').textContent='请求中…';
+    document.getElementById('sbAod').textContent='--';
+    document.getElementById('sbModel').textContent='GFS / EC';
+    document.getElementById('sbStatus').textContent='正在连接 SunsetBot 官方 JSON（济南）…';
+
+    const [setRes,riseRes]=await Promise.allSettled([
+      fetchSunsetEvent('set_1'),
+      fetchSunsetEvent('rise_1')
+    ]);
+    const set=setRes.status==='fulfilled'?setRes.value:null;
+    const rise=riseRes.status==='fulfilled'?riseRes.value:null;
+    const sv=sbValue(set?.tb_quality), rv=sbValue(rise?.tb_quality);
+    const sa=sbValue(set?.tb_aod), ra=sbValue(rise?.tb_aod);
+
+    document.getElementById('sbSet').textContent=sv==null?(set?'暂无':'请求失败'):`${sv.toFixed(3)} · ${sbLevel(sv)}`;
+    document.getElementById('sbRise').textContent=rv==null?(rise?'暂无':'请求失败'):`${rv.toFixed(3)} · ${sbLevel(rv)}`;
+    const bestA=sv!=null&&rv!=null?(sv>=rv?sa:ra):(sa??ra);
+    document.getElementById('sbAod').textContent=bestA==null?'--':bestA.toFixed(3);
+    const models=[set?.['_jianxia_model'],rise?.['_jianxia_model']].filter(Boolean);
+    document.getElementById('sbModel').textContent=models.length?[...new Set(models)].join(' / '):'GFS / EC';
+
+    if(set||rise){
+      const city=set?.display_city_name||rise?.display_city_name||sunsetBotCityName()||'当前位置';
+      const parts=[]; if(set)parts.push('晚霞 ✓');else parts.push('晚霞请求失败');
+      if(rise)parts.push('朝霞 ✓');else parts.push('朝霞请求失败');
+      document.getElementById('sbStatus').textContent=`SunsetBot 官方数据已连接 · ${city} · ${parts.join(' · ')}`;
+    }else{
+      const e1=setRes.status==='rejected'?setRes.reason?.message:'';
+      const e2=riseRes.status==='rejected'?riseRes.reason?.message:'';
+      const err=[e1,e2].filter(Boolean).join('；');
+      document.getElementById('sbStatus').textContent=`SunsetBot 官方 JSON 请求失败${err?'：'+err:'。'}`
+    }
+  })().finally(()=>{sunsetBotPromise=null});
+  return sunsetBotPromise;
 }
 let suggestionTimer=null;
 let suggestionResults=[];
