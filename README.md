@@ -1,24 +1,7 @@
-# 见霞 V1 · Cloudflare 正式网站版
+# 见霞 Cloudflare SunsetBot V5 官方接口修正版
 
-这是「见霞 V1 联网版」的 Cloudflare Pages 版本。
+本版保持 V5 界面，同时修正 SunsetBot 调用：使用其公开 JSON API 的最小官方参数集 `intend=select_city&query_city=城市&event=rise_1/set_1/rise_2/set_2&model=GFS/EC`，加入每次请求唯一的 6 位 query_id；Worker 同时尝试 www.sunsetbot.top 与 sunsetbot.top，并禁用 Cloudflare 缓存。默认地址为山东济南。
 
-## 最简单的部署方式
+部署时请整包上传，确保 `_worker.js` 位于项目根目录。
 
-1. 把整个项目上传到 GitHub（网页操作即可）。
-2. 在 Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git。
-3. 选择这个 GitHub 仓库。
-4. Framework preset 选择 `None`。
-5. Build command 留空。
-6. Build output directory 填 `/`。
-7. 保存并部署。
-
-部署完成后会得到 `https://你的项目名.pages.dev`，这个网址可以直接分享。
-
-## 为什么没有继续使用 server.mjs？
-
-原版本需要 Node.js 服务器代理 SunsetBot。Cloudflare Pages 不能直接运行这个 Node HTTP server。
-本版本把 `/api/sunsetbot` 改成了 Cloudflare Pages Function，所以定位、天气和 SunsetBot 代理可以继续工作。
-
-## 手机使用
-
-部署后可以直接用手机浏览器打开。后续还可以继续加入 PWA 安装到手机桌面、图标、启动页和推送提醒。
+地址搜索增强：优先使用 Cloudflare Worker 代理的 Nominatim 详细地理编码，可识别街道、村庄、社区、邻里和门牌号；Open-Meteo 作为回退。详细程度取决于地图数据覆盖。
