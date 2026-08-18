@@ -39,6 +39,10 @@ footer{padding:18px 2px;color:#687f97;font-size:10px;line-height:1.6}
 .dual-analysis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;align-items:stretch}.analysis-panel{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:12px;background:rgba(255,255,255,.025);min-width:0;height:100%;display:flex;flex-direction:column}.analysis-panel h3{margin:0 0 10px;font-size:15px}.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.analysis-item{padding:8px;border-radius:10px;background:rgba(255,255,255,.035);display:flex;flex-direction:column;gap:3px}.analysis-item span{font-size:11px;opacity:.65}.analysis-item b{font-size:13px}.analysis-desc{grid-column:1/-1;font-size:12px;line-height:1.6;opacity:.82;padding:4px 2px}@media(max-width:700px){.wrap{width:100%;max-width:none;padding:10px}.top{width:100%;gap:8px}.hero,.card{width:100%;min-width:0}.row{width:100%}.searchbox{min-width:0;width:100%}.searchbox .input{min-width:0;width:100%}.btn{max-width:100%}.dual-analysis{grid-template-columns:1fr}.analysis-panel{height:auto;min-height:0}.analysis-grid{grid-template-columns:1fr 1fr}}
 
 .sb-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}.sb-controls button{border:1px solid #28425d;background:#0b1a2b;color:#b8cad9;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12px;cursor:pointer}.sb-controls button.on{background:#f28b32;color:#fff;border-color:#f28b32;box-shadow:0 4px 12px rgba(242,139,50,.22)}.sb-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.sb-meta span{font-size:10px;color:#7f96aa;background:#091727;border:1px solid #1d344c;border-radius:7px;padding:5px 8px}.sb-diff{font-size:11px;color:#8da4b8;margin-top:8px;line-height:1.5}
+
+.sb-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;padding:10px 12px;border:1px solid rgba(255,140,50,.18);border-radius:12px;background:rgba(255,140,50,.045)}
+.sb-control-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.sb-label{font-size:12px;color:#888;min-width:54px}.sb-controls button{border:1px solid #ddd;background:#fff;border-radius:9px;padding:7px 14px;font-weight:600;cursor:pointer}.sb-controls button.on{background:#f28c28;color:#fff;border-color:#f28c28}
+.sb-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#777}.sb-diff{margin-top:10px;font-size:12px;line-height:1.55;color:#777}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -121,11 +125,15 @@ header .logo,
 <section class="card" id="sunsetBotCard" style="margin-top:14px">
  <h2>🔥 SunsetBot 官方数据源</h2>
  <div class="sub">这里不是重新计算 SunsetBot 的分数，而是直接调用其公开 JSON 查询接口，保留 SunsetBot 原始鲜艳度与 AOD。根据其公开页面，它的核心数据来自 NCEP-GFS / ECMWF 云况 + CAMS 气溶胶，并考虑持续时间、云量、云底高度、云层照明遮挡与 AOD 等因素。 </div>
- <div class="sb-controls" aria-label="SunsetBot 数据选择">
-  <button id="sbDay1" class="on" onclick="setSbDay(1)">今天</button>
-  <button id="sbDay2" onclick="setSbDay(2)">明天</button>
-  <button id="sbGfs" class="on" onclick="setSbModel('GFS')">GFS</button>
-  <button id="sbEc" onclick="setSbModel('EC')">EC</button>
+ <div class="sb-controls" aria-label="SunsetBot 官方数据选择">
+  <div class="sb-control-group"><span class="sb-label">数据日期</span><div>
+   <button id="sbDay1" class="on" onclick="setSbDay(1)">今天</button>
+   <button id="sbDay2" onclick="setSbDay(2)">明天</button>
+  </div></div>
+  <div class="sb-control-group"><span class="sb-label">官方模型</span><div>
+   <button id="sbGfs" class="on" onclick="setSbModel('GFS')">GFS</button>
+   <button id="sbEc" onclick="setSbModel('EC')">EC</button>
+  </div></div>
  </div>
  <div class="kpis" style="margin-top:12px">
   <div class="kpi"><small>官方晚霞</small><strong id="sbSet">加载中…</strong></div>
